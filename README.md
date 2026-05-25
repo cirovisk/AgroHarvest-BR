@@ -101,7 +101,50 @@ A documentação visual completa pode ser encontrada em: **[ARCHITECTURE_VISUAL.
     docker-compose run --rm test
     ```
 
+## 🔔 Sistema de Alertas
+
+Ao final de cada execução, o pipeline grava automaticamente um arquivo JSON de status em `data/logs/` e pode enviar uma notificação no **Telegram** caso ocorram falhas.
+
+### Configuração do Telegram (opcional)
+
+> **Sem as variáveis abaixo o pipeline continua funcionando normalmente** — apenas o JSON é gravado e um aviso é emitido no log.
+
+1. Crie um bot via [@BotFather](https://t.me/botfather) e copie o token gerado.
+2. Envie uma mensagem ao bot e acesse `https://api.telegram.org/bot<TOKEN>/getUpdates` para obter seu `chat_id`.
+3. Adicione as variáveis no `.env`:
+
+```env
+TELEGRAM_BOT_TOKEN=123456:ABC-...
+TELEGRAM_CHAT_ID=987654321
+```
+
+### Variáveis disponíveis
+
+| Variável | Padrão | Descrição |
+|---|---|---|
+| `TELEGRAM_BOT_TOKEN` | *(vazio)* | Token do bot Telegram |
+| `TELEGRAM_CHAT_ID` | *(vazio)* | ID do chat/canal destino |
+| `ALERT_ON_SUCCESS` | `false` | `true` = notifica mesmo quando tudo OK |
+| `LOG_STATUS_PATH` | `data/logs` | Diretório dos JSONs de status |
+
+### Exemplo de notificação
+
+```
+⚠️ AgroHarvest BR (PostgreSQL) — FALHA PARCIAL
+
+📅 2026-05-25T08:30:00
+⏱ Duração: 38s
+📊 Fontes: 8 total
+✅ Sucesso (6): conab, sidra, cultivares, agrofit, fertilizantes, sigef
+❌ Falhou (2): zarc, open_meteo
+
+Erros:
+  • zarc: Timeout na requisição HTTP
+  • open_meteo: JSONDecodeError linha 1
+```
+
 ## ⚖️ Licença e Uso de Dados
+
 
 - **Código:** Este projeto está sob a licença [MIT](LICENSE).
 - **Dados:** O projeto utiliza bases de dados públicas regidas pela Lei de Acesso à Informação (LAI).
