@@ -85,7 +85,18 @@ class ZarcPipeline(BaseSource):
             
             if not raw_file.exists():
                 self.log.info(f"Baixando base unificada ZARC (Atenção: arquivo muito grande, pode levar alguns minutos)...")
-                with requests.get(url_safra_23_24, stream=True, verify=False, timeout=60) as r:
+                try:
+                    r = requests.get(url_safra_23_24, stream=True, verify=True, timeout=60)
+                except requests.exceptions.SSLError as ssl_err:
+                    self.log.warning(
+                        f"Falha de SSL ao conectar com {url_safra_23_24}: {ssl_err}. "
+                        "Retentando com verificação SSL desabilitada (fallback)..."
+                    )
+                    import urllib3
+                    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                    r = requests.get(url_safra_23_24, stream=True, verify=False, timeout=60)
+                
+                with r:
                     r.raise_for_status()
                     with open(raw_file, 'wb') as f:
                         for chunk in r.iter_content(chunk_size=8192): 

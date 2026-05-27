@@ -19,8 +19,6 @@ COPY . .
 # Environment variable defaults
 ENV POSTGRES_HOST=postgres
 ENV POSTGRES_PORT=5432
-ENV POSTGRES_USER=cultivares_user
-ENV POSTGRES_PASSWORD=cultivares_password
 ENV POSTGRES_DB=cultivares_db
 
 # Default command can be empty or keep the notebook one

@@ -50,7 +50,17 @@ class SigefPipeline(BaseSource):
 
             self.log.info(f"Baixando SIGEF {key} de {url}...")
             try:
-                resp = requests.get(url, timeout=60, verify=False)  # Frequent SSL issues on MAPA
+                try:
+                    resp = requests.get(url, timeout=60, verify=True)
+                except requests.exceptions.SSLError as ssl_err:
+                    self.log.warning(
+                        f"Falha de SSL ao conectar com {url}: {ssl_err}. "
+                        "Retentando com verificação SSL desabilitada (fallback)..."
+                    )
+                    import urllib3
+                    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                    resp = requests.get(url, timeout=60, verify=False)
+                
                 resp.raise_for_status()
                 with open(local_path, "wb") as f:
                     f.write(resp.content)

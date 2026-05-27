@@ -10,11 +10,28 @@ log = logging.getLogger(__name__)
 
 # Configuração: Credenciais via variáveis de ambiente
 load_dotenv()
-DB_USER = os.getenv("POSTGRES_USER", "cultivares_user")
-DB_PASS = os.getenv("POSTGRES_PASSWORD", "cultivares_password")
-DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
-DB_PORT = os.getenv("POSTGRES_PORT", "5432")
-DB_NAME = os.getenv("POSTGRES_DB", "cultivares_db")
+
+# Permite forçar SQLite para testes rápidos
+USE_SQLITE = os.getenv("USE_SQLITE", "false").lower() == "true"
+
+if USE_SQLITE:
+    DB_USER = ""
+    DB_PASS = ""
+    DB_HOST = ""
+    DB_PORT = ""
+    DB_NAME = ""
+else:
+    DB_USER = os.getenv("POSTGRES_USER")
+    DB_PASS = os.getenv("POSTGRES_PASSWORD")
+    DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
+    DB_PORT = os.getenv("POSTGRES_PORT", "5432")
+    DB_NAME = os.getenv("POSTGRES_DB", "cultivares_db")
+
+    if not DB_USER or not DB_PASS:
+        raise ValueError(
+            "As variáveis de ambiente POSTGRES_USER e POSTGRES_PASSWORD "
+            "precisam estar definidas para conexão PostgreSQL!"
+        )
 
 # Permite forçar SQLite para testes rápidos
 if os.getenv("USE_SQLITE", "false").lower() == "true":

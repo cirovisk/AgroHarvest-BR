@@ -23,13 +23,15 @@ app.add_middleware(SlowAPIMiddleware)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logging.error(f"FATAL ERROR: {request.url}\n{traceback.format_exc()}")
+    import uuid
+    error_id = str(uuid.uuid4())
+    logging.error(f"FATAL ERROR [{error_id}]: {request.url}\n{traceback.format_exc()}")
     return JSONResponse(
         status_code=500,
         content={
             "error": "Internal Server Error",
-            "detail": str(exc),
-            "traceback": "Check server logs for technical details"
+            "message": "Ocorreu um erro interno no servidor.",
+            "error_id": error_id
         }
     )
 
