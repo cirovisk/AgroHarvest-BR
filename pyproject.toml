@@ -1,0 +1,36 @@
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+exclude = [
+    ".git",
+    ".pytest_cache",
+    ".mypy_cache",
+    "__pycache__",
+    "build",
+    "dist",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = [
+    "E402",  # Permitir importes pós-load_dotenv() e pós-logging setup
+    "F401",  # Permitir importes não usados para acionamento de decoradores @register em __init__.py
+    "E501",  # Ignorar erros de linha muito longa (deixar o ruff format cuidar disso)
+    "W291",  # Ignorar erros de whitespace em multilinhas SQL e comentários
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.mypy]
+ignore_missing_imports = true
+disable_error_code = [
+    "assignment",     # Permitir reatribuição de variáveis dinâmicas do SQLAlchemy
+    "valid-type",     # Ignorar problemas de tipagem com declarative_base do SQLAlchemy
+    "misc",           # Ignorar erros diversos de classes bases dinâmicas
+    "arg-type",       # Ignorar atribuição de Column do SQLAlchemy para tipos primitivos
+    "var-annotated",  # Permitir declaração de tipos inferidos sem anotação explícita
+]

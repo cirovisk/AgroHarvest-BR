@@ -6,20 +6,19 @@ Limpo. Fácil manutenção.
 """
 
 import argparse
-import logging
 import gc
+import logging
 import time
-
-from db.manager import init_db, get_db
-from pipeline.registry import get_sources
-from pipeline.dimensions import (
-    preencher_dimensao_cultura,
-    carregar_municipios_completo_ibge,
-)
-from pipeline.alert_manager import AlertManager
 
 # IMPORTANTE: importar o pacote sources para acionar os @register
 import pipeline.sources  # noqa: F401
+from db.manager import get_db, init_db
+from pipeline.alert_manager import AlertManager
+from pipeline.dimensions import (
+    carregar_municipios_completo_ibge,
+    preencher_dimensao_cultura,
+)
+from pipeline.registry import get_sources
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
@@ -32,8 +31,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="Pipeline AgroHarvest BR")
     parser.add_argument(
-        "--sources", nargs="+", choices=sources.keys(),
-        default=list(sources.keys()), help="Fontes de dados a processar"
+        "--sources", nargs="+", choices=sources.keys(), default=list(sources.keys()), help="Fontes de dados a processar"
     )
     parser.add_argument("--refresh", action="store_true", help="Força refresh de caches")
     args = parser.parse_args()

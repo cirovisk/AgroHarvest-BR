@@ -2,9 +2,10 @@
 Contrato base para todos os pipelines de fonte de dados.
 Cada source DEVE implementar extract(), clean() e load().
 """
+
+import logging
 import os
 import time
-import logging
 from abc import ABC, abstractmethod
 
 

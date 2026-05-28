@@ -1,14 +1,15 @@
 """Pipeline Fertilizantes: Estabelecimentos SIPEAGRO (MAPA)."""
 
-import os
 import logging
+import os
+
 import pandas as pd
 import requests
 
-from pipeline.registry import register
-from pipeline.base import BaseSource
-from pipeline.utils import map_municipio_by_name, upsert_data
 from db.manager import FatoFertilizante
+from pipeline.base import BaseSource
+from pipeline.registry import register
+from pipeline.utils import map_municipio_by_name, upsert_data
 
 log = logging.getLogger(__name__)
 
@@ -38,7 +39,9 @@ class FertilizantesPipeline(BaseSource):
         is_stale = self.is_file_stale(local_path, threshold_days=30)
 
         if self.force_refresh or not os.path.exists(local_path) or is_stale:
-            reason = "forçado" if self.force_refresh else ("ausente" if not os.path.exists(local_path) else "desatualizado")
+            reason = (
+                "forçado" if self.force_refresh else ("ausente" if not os.path.exists(local_path) else "desatualizado")
+            )
             self.log.info(f"Iniciando download do SIPEAGRO ({reason}): {self.DOWNLOAD_URL}")
             self._download_file(local_path)
         else:
@@ -46,13 +49,7 @@ class FertilizantesPipeline(BaseSource):
 
         if os.path.exists(local_path):
             try:
-                df = pd.read_csv(
-                    local_path,
-                    sep=";",
-                    encoding="latin1",
-                    dtype=str,
-                    skipinitialspace=True
-                )
+                df = pd.read_csv(local_path, sep=";", encoding="latin1", dtype=str, skipinitialspace=True)
                 self.log.info(f"SIPEAGRO carregado: {len(df)} linha(s), {len(df.columns)} coluna(s).")
                 return df
             except Exception as e:
@@ -67,6 +64,7 @@ class FertilizantesPipeline(BaseSource):
         if os.path.exists(local_path):
             import shutil
             from datetime import datetime
+
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             archive_dir = os.path.join(self.data_dir, "archive")
             os.makedirs(archive_dir, exist_ok=True)
@@ -90,6 +88,7 @@ class FertilizantesPipeline(BaseSource):
                 "Recomendação: instale o certificado raiz do MAPA ou adicione-o ao bundle do certifi."
             )
             import urllib3
+
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
             try:
                 resp = requests.get(self.DOWNLOAD_URL, headers=headers, timeout=120, verify=False)
@@ -123,7 +122,7 @@ class FertilizantesPipeline(BaseSource):
             "NOME_FANTASIA": "nome_fantasia",
             "AREA_ATUACAO": "area_atuacao",
             "ATIVIDADE": "atividade",
-            "CLASSIFICACAO": "classificacao"
+            "CLASSIFICACAO": "classificacao",
         }
 
         df = df.rename(columns=renames)
@@ -132,10 +131,11 @@ class FertilizantesPipeline(BaseSource):
         for col in str_cols:
             df[col] = df[col].str.strip()
 
-        sem_registro = df["nr_registro_estabelecimento"].isna().sum() if "nr_registro_estabelecimento" in df.columns else "N/A"
+        sem_registro = (
+            df["nr_registro_estabelecimento"].isna().sum() if "nr_registro_estabelecimento" in df.columns else "N/A"
+        )
         self.log.info(
-            f"Cleaner SIPEAGRO concluído: {len(df)} estabelecimento(s). "
-            f"Sem número de registro: {sem_registro}."
+            f"Cleaner SIPEAGRO concluído: {len(df)} estabelecimento(s). Sem número de registro: {sem_registro}."
         )
         return df
 
@@ -148,7 +148,7 @@ class FertilizantesPipeline(BaseSource):
         df_f = df.copy()
         df_f["id_municipio"] = map_municipio_by_name(df_f, lookups["municipios_nome"])
         df_f = df_f.drop_duplicates(subset=["nr_registro_estabelecimento"])
-        upsert_data(FatoFertilizante, df_f, index_elements=['nr_registro_estabelecimento'])
+        upsert_data(FatoFertilizante, df_f, index_elements=["nr_registro_estabelecimento"])
         result = f"{len(df_f)} estabelecimentos upserted"
         self.log.info(f"Fato Fertilizantes: {result}.")
         return result

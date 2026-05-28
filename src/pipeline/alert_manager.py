@@ -153,18 +153,19 @@ class AlertManager:
     def _send_telegram(self, payload: dict) -> None:
         if not self._token or not self._chat_id:
             log.warning(
-                "[AlertManager] TELEGRAM_BOT_TOKEN ou TELEGRAM_CHAT_ID não definidos — "
-                "notificação Telegram ignorada."
+                "[AlertManager] TELEGRAM_BOT_TOKEN ou TELEGRAM_CHAT_ID não definidos — notificação Telegram ignorada."
             )
             return
 
         text = self._build_message(payload)
         api_url = f"https://api.telegram.org/bot{self._token}/sendMessage"
-        body = json.dumps({
-            "chat_id": self._chat_id,
-            "text": text,
-            "parse_mode": "HTML",
-        }).encode("utf-8")
+        body = json.dumps(
+            {
+                "chat_id": self._chat_id,
+                "text": text,
+                "parse_mode": "HTML",
+            }
+        ).encode("utf-8")
 
         try:
             req = urllib.request.Request(

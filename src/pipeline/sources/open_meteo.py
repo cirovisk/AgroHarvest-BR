@@ -3,19 +3,21 @@ Pipeline Open-Meteo: Dados Meteorológicos Históricos.
 Substitui INMET devido a instabilidades.
 """
 
-import os
 import logging
+import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timedelta
+
 import pandas as pd
 import requests
-from datetime import datetime, timedelta
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from pipeline.registry import register
-from pipeline.base import BaseSource
-from pipeline.utils import upsert_data
 from db.manager import DimMunicipio, FatoMeteorologia
+from pipeline.base import BaseSource
+from pipeline.registry import register
+from pipeline.utils import upsert_data
 
 log = logging.getLogger(__name__)
+
 
 @register("open_meteo")
 class OpenMeteoPipeline(BaseSource):
@@ -41,20 +43,17 @@ class OpenMeteoPipeline(BaseSource):
         coords_df = self.get_municipios_coords()
         if coords_df.empty:
             return "0 registros (sem coordenadas)"
-        
+
         # 2. Obter municípios do banco
         all_muns = db.query(DimMunicipio).all()
-        
+
         mun_coords = {}
         for m in all_muns:
             # Codigo IBGE no CSV geralmente é os 7 digitos
             match = coords_df[coords_df["codigo_ibge"].astype(str) == str(m.codigo_ibge)]
             if not match.empty:
-                mun_coords[m.id_municipio] = {
-                    "lat": match.iloc[0]["latitude"],
-                    "lon": match.iloc[0]["longitude"]
-                }
-        
+                mun_coords[m.id_municipio] = {"lat": match.iloc[0]["latitude"], "lon": match.iloc[0]["longitude"]}
+
         if not mun_coords:
             return "0 registros (nenhum município com coordenadas)"
 
@@ -98,9 +97,9 @@ class OpenMeteoPipeline(BaseSource):
         if not mun_coords:
             return {}
 
-        end_date = datetime.now() - timedelta(days=2) # API archive tem ~2 dias de lag
+        end_date = datetime.now() - timedelta(days=2)  # API archive tem ~2 dias de lag
         start_date = end_date - timedelta(days=self.days_history)
-        
+
         s_str = start_date.strftime("%Y-%m-%d")
         e_str = end_date.strftime("%Y-%m-%d")
 
@@ -145,14 +144,16 @@ class OpenMeteoPipeline(BaseSource):
                 continue
 
             df = df.copy()
-            df = df.rename(columns={
-                "time": "data",
-                "precipitation_sum": "precipitacao_total_mm",
-                "temperature_2m_max": "temp_max_c",
-                "temperature_2m_min": "temp_min_c",
-                "temperature_2m_mean": "temp_media_c"
-            })
-            
+            df = df.rename(
+                columns={
+                    "time": "data",
+                    "precipitation_sum": "precipitacao_total_mm",
+                    "temperature_2m_max": "temp_max_c",
+                    "temperature_2m_min": "temp_min_c",
+                    "temperature_2m_mean": "temp_media_c",
+                }
+            )
+
             df["umidade_media"] = None
             df["estacao_id"] = "OPEN-METEO"
             df["id_municipio"] = mid
@@ -170,7 +171,7 @@ class OpenMeteoPipeline(BaseSource):
         if df.empty:
             return "0 registros"
 
-        upsert_data(FatoMeteorologia, df, index_elements=['id_municipio', 'data'])
+        upsert_data(FatoMeteorologia, df, index_elements=["id_municipio", "data"])
         result = f"{len(df)} registros upserted"
         self.log.info(f"Fato Meteorologia (Open-Meteo): {result}.")
         return result

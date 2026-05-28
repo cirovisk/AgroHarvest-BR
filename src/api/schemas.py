@@ -1,8 +1,10 @@
-from pydantic import BaseModel, ConfigDict
-from typing import List, Dict, Optional, Generic, TypeVar
 from datetime import date
+from typing import Dict, Generic, List, Optional, TypeVar
+
+from pydantic import BaseModel, ConfigDict
 
 T = TypeVar("T")
+
 
 class PaginatedResponse(BaseModel, Generic[T]):
     total: int
@@ -16,24 +18,28 @@ class PaginatedResponse(BaseModel, Generic[T]):
 # 1. SCHEMAS SIMPLES (Pesquisas Rápidas e Listagens)
 # ==========================================
 
+
 class CulturaBaseSchema(BaseModel):
     id_cultura: int
     nome_padronizado: str
-    
+
     model_config = ConfigDict(from_attributes=True)
+
 
 class MunicipioBaseSchema(BaseModel):
     id_municipio: int
     codigo_ibge: str
     nome: str
     uf: Optional[str] = None
-    
+
     model_config = ConfigDict(from_attributes=True)
+
 
 class ProducaoPAMSimplesSchema(BaseModel):
     ano: int
     area_plantada_ha: Optional[float] = None
     qtde_produzida_ton: Optional[float] = None
+
 
 class ProducaoPAMSchema(BaseModel):
     id_producao: int
@@ -46,8 +52,9 @@ class ProducaoPAMSchema(BaseModel):
     cultura: str
     municipio_nome: str
     uf: Optional[str] = None
-    
+
     model_config = ConfigDict(from_attributes=True)
+
 
 class ProducaoConabSchema(BaseModel):
     id_conab: int
@@ -58,8 +65,9 @@ class ProducaoConabSchema(BaseModel):
     producao_mil_t: Optional[float] = None
     produtividade_t_ha: Optional[float] = None
     cultura: str
-    
+
     model_config = ConfigDict(from_attributes=True)
+
 
 class SigefProducaoSchema(BaseModel):
     id_sigef_producao: int
@@ -72,8 +80,9 @@ class SigefProducaoSchema(BaseModel):
     cultura: str
     municipio_nome: str
     uf: Optional[str] = None
-    
+
     model_config = ConfigDict(from_attributes=True)
+
 
 class AgrofitSchema(BaseModel):
     id_agrofit: int
@@ -82,8 +91,9 @@ class AgrofitSchema(BaseModel):
     classe: Optional[str] = None
     praga_comum: Optional[str] = None
     cultura: Optional[str] = None
-    
+
     model_config = ConfigDict(from_attributes=True)
+
 
 class FertilizanteSchema(BaseModel):
     id_fertilizante: int
@@ -93,8 +103,9 @@ class FertilizanteSchema(BaseModel):
     razao_social: Optional[str] = None
     area_atuacao: Optional[str] = None
     atividade: Optional[str] = None
-    
+
     model_config = ConfigDict(from_attributes=True)
+
 
 class MeteorologiaSchema(BaseModel):
     id_meteo: int
@@ -104,12 +115,14 @@ class MeteorologiaSchema(BaseModel):
     umidade_media: Optional[float] = None
     municipio_nome: str
     uf: Optional[str] = None
-    
+
     model_config = ConfigDict(from_attributes=True)
+
 
 # ==========================================
 # 2. SCHEMAS COMPOSTOS (Visões Analíticas Avançadas)
 # ==========================================
+
 
 # 2.1 RaioXAgroMunicipal (ZARC + PAM + Meteorologia)
 class RaioXAgroMunicipalSchema(BaseModel):
@@ -119,17 +132,19 @@ class RaioXAgroMunicipalSchema(BaseModel):
     ano: int
     resultado_safra: ProducaoPAMSimplesSchema
     risco_zarc_predominante: Optional[str] = None
-    resumo_climatico: Optional[Dict[str, float]] = None # Ex: {"temp_media": 25.5, "precipitacao_anual_mm": 1200.0}
+    resumo_climatico: Optional[Dict[str, float]] = None  # Ex: {"temp_media": 25.5, "precipitacao_anual_mm": 1200.0}
     ocorreu_quebra_safra: Optional[bool] = None
+
 
 # 2.2 DossieInsumosCultura (Cultivares + SIGEF + Agrofit)
 class DossieInsumosCulturaSchema(BaseModel):
     cultura: str
-    cultivares_ativos: int            
-    volume_sementes_sigef_ton: Optional[float] = None  
-    defensivos_recomendados: List[str] 
-    principais_pragas_alvo: List[str] 
+    cultivares_ativos: int
+    volume_sementes_sigef_ton: Optional[float] = None
+    defensivos_recomendados: List[str]
+    principais_pragas_alvo: List[str]
     grau_de_tecnologia: Optional[str] = None
+
 
 # 2.3 ViabilidadeEconomica (PAM + Preços CONAB)
 class ViabilidadeEconomicaSchema(BaseModel):
@@ -142,15 +157,17 @@ class ViabilidadeEconomicaSchema(BaseModel):
     vgb_apurado_milhoes: Optional[float] = None
     renda_media_hectare: Optional[float] = None
 
+
 # 2.4 JanelaDeAplicacao (Fertilizantes + Meteorologia)
 class JanelaDeAplicacaoSchema(BaseModel):
     municipio: str
     uf: str
     mes_referencia: str
-    estabelecimentos_insumos: int     
+    estabelecimentos_insumos: int
     acumulado_chuvas_mm: Optional[float] = None
-    janela_perfeita_aplicacao: Optional[bool] = None   
+    janela_perfeita_aplicacao: Optional[bool] = None
     capacidade_de_atendimento: Optional[str] = None
+
 
 # 2.5 AuditoriaEstimativas (PAM vs CONAB)
 class AuditoriaEstimativasSchema(BaseModel):

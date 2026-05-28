@@ -13,14 +13,15 @@ ESTRATÉGIAS DE OTIMIZAÇÃO PARA GRANDES VOLUMES:
 """
 
 import logging
-import pandas as pd
-import requests
 from pathlib import Path
 
-from pipeline.registry import register
-from pipeline.base import BaseSource
-from pipeline.utils import normalize_string, get_cultura_id, upsert_data
+import pandas as pd
+import requests
+
 from db.manager import FatoRiscoZARC
+from pipeline.base import BaseSource
+from pipeline.registry import register
+from pipeline.utils import get_cultura_id, normalize_string, upsert_data
 
 log = logging.getLogger(__name__)
 
@@ -33,6 +34,7 @@ class ZarcPipeline(BaseSource):
     """
 
     from config import CULTURAS_ALVO
+
     TARGET_CROPS = CULTURAS_ALVO
 
     def __init__(self, use_cache: bool = True, data_dir: str = "data/zarc", chunksize: int = 50000):
@@ -47,10 +49,10 @@ class ZarcPipeline(BaseSource):
     def run(self, lookups: dict, **kwargs) -> str:
         """Override: processa em chunks para economia de memória."""
         self.log.info("Iniciando pipeline ZARC (streaming)...")
-        
+
         # Faz o download automático se necessário
         self.download_data()
-        
+
         total = 0
         for chunk in self.extract():
             clean_chunk = self.clean(chunk)
@@ -73,19 +75,23 @@ class ZarcPipeline(BaseSource):
         Para otimização, vamos simular a gravação dos arquivos individuais apenas com a cultura correspondente.
         """
         url_safra_23_24 = "https://dados.agricultura.gov.br/dataset/6d3d141c-885e-41a4-ab7f-dc8ff323b96f/resource/64664b7c-5002-409a-9856-3170781e92f8/download/dados-abertos-tabua-de-risco-safra-2023-2024.csv"
-        
+
         missing_crops = [crop for crop in self.TARGET_CROPS if not (self.data_dir / f"zarc_{crop}.csv").exists()]
         if not missing_crops:
             self.log.info("Arquivos ZARC já existem. Pulando download.")
             return
 
-        self.log.info(f"Arquivos ausentes para: {missing_crops}. Iniciando download do portal de Dados Abertos do MAPA...")
+        self.log.info(
+            f"Arquivos ausentes para: {missing_crops}. Iniciando download do portal de Dados Abertos do MAPA..."
+        )
         try:
             # Baixando arquivo massivo em streaming para não estourar a RAM
             raw_file = self.data_dir / "zarc_raw_download.csv"
-            
+
             if not raw_file.exists():
-                self.log.info(f"Baixando base unificada ZARC (Atenção: arquivo muito grande, pode levar alguns minutos)...")
+                self.log.info(
+                    "Baixando base unificada ZARC (Atenção: arquivo muito grande, pode levar alguns minutos)..."
+                )
                 try:
                     r = requests.get(url_safra_23_24, stream=True, verify=True, timeout=60)
                 except requests.exceptions.SSLError as ssl_err:
@@ -94,41 +100,51 @@ class ZarcPipeline(BaseSource):
                         "Retentando com verificação SSL desabilitada (fallback)..."
                     )
                     import urllib3
+
                     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
                     r = requests.get(url_safra_23_24, stream=True, verify=False, timeout=60)
-                
+
                 with r:
                     r.raise_for_status()
-                    with open(raw_file, 'wb') as f:
-                        for chunk in r.iter_content(chunk_size=8192): 
+                    with open(raw_file, "wb") as f:
+                        for chunk in r.iter_content(chunk_size=8192):
                             f.write(chunk)
                 self.log.info("Download unificado concluído.")
 
             self.log.info("Separando arquivo massivo por cultura para otimização de leitura futura...")
             # Lendo em chunks o arquivo massivo para criar os arquivos individuais
-            reader = pd.read_csv(raw_file, sep=';', encoding='utf-8', on_bad_lines='skip', chunksize=200000)
-            
+            reader = pd.read_csv(raw_file, sep=";", encoding="utf-8", on_bad_lines="skip", chunksize=200000)
+
             # Inicializando os arquivos vazios com header
             headers_written = {crop: False for crop in missing_crops}
-            
+
             for chunk in reader:
                 chunk_cultura_col = "Nome_cultura" if "Nome_cultura" in chunk.columns else "cultura"
                 if chunk_cultura_col not in chunk.columns:
                     break
-                
-                chunk["cultura_norm"] = chunk[chunk_cultura_col].astype(str).str.lower().str.normalize('NFKD').str.encode('ascii', errors='ignore').str.decode('utf-8')
-                
+
+                chunk["cultura_norm"] = (
+                    chunk[chunk_cultura_col]
+                    .astype(str)
+                    .str.lower()
+                    .str.normalize("NFKD")
+                    .str.encode("ascii", errors="ignore")
+                    .str.decode("utf-8")
+                )
+
                 for crop in missing_crops:
                     crop_df = chunk[chunk["cultura_norm"].str.contains(crop, na=False)]
                     if not crop_df.empty:
                         crop_file = self.data_dir / f"zarc_{crop}.csv"
-                        crop_df.drop(columns=["cultura_norm"]).to_csv(crop_file, sep=';', index=False, mode='a', header=not headers_written[crop])
+                        crop_df.drop(columns=["cultura_norm"]).to_csv(
+                            crop_file, sep=";", index=False, mode="a", header=not headers_written[crop]
+                        )
                         headers_written[crop] = True
 
             self.log.info("Separação por cultura concluída!")
             # Opcional: remover raw_file para poupar disco
             # raw_file.unlink(missing_ok=True)
-            
+
         except Exception as e:
             self.log.error(f"Erro ao baixar/processar dados do MAPA ZARC: {e}")
 
@@ -146,15 +162,15 @@ class ZarcPipeline(BaseSource):
                 self.log.info(f"Iniciando leitura do arquivo: {cache_file.name}")
                 try:
                     with open(cache_file, "rb") as f:
-                        is_gzip = f.read(2) == b'\x1f\x8b'
-                        
+                        is_gzip = f.read(2) == b"\x1f\x8b"
+
                     reader = pd.read_csv(
                         cache_file,
-                        sep=';',
-                        encoding='utf-8',
-                        on_bad_lines='skip',
+                        sep=";",
+                        encoding="utf-8",
+                        on_bad_lines="skip",
                         chunksize=self.chunksize,
-                        compression='gzip' if is_gzip else None
+                        compression="gzip" if is_gzip else None,
                     )
                     for chunk in reader:
                         # Tenta identificar a cultura no chunk se não houver coluna fixa
@@ -180,18 +196,18 @@ class ZarcPipeline(BaseSource):
                 self.log.info(f"Extraindo metadados geográficos: {crop}")
                 try:
                     with open(cache_file, "rb") as f:
-                        is_gzip = f.read(2) == b'\x1f\x8b'
+                        is_gzip = f.read(2) == b"\x1f\x8b"
 
                     # Carrega apenas o cabeçalho para validar colunas
-                    header_check = pd.read_csv(cache_file, sep=';', nrows=0, compression='gzip' if is_gzip else None)
-                    use_cols = ["cod_municipio_ibge", "municipio", "uf"] if "cod_municipio_ibge" in header_check.columns else ["UF"]
+                    header_check = pd.read_csv(cache_file, sep=";", nrows=0, compression="gzip" if is_gzip else None)
+                    use_cols = (
+                        ["cod_municipio_ibge", "municipio", "uf"]
+                        if "cod_municipio_ibge" in header_check.columns
+                        else ["UF"]
+                    )
 
                     reader = pd.read_csv(
-                        cache_file,
-                        sep=';',
-                        usecols=use_cols,
-                        compression='gzip' if is_gzip else None,
-                        chunksize=100000
+                        cache_file, sep=";", usecols=use_cols, compression="gzip" if is_gzip else None, chunksize=100000
                     )
                     for chunk in reader:
                         if "cod_municipio_ibge" in chunk.columns:
@@ -215,12 +231,14 @@ class ZarcPipeline(BaseSource):
             df_clean.columns.str.lower()
             .str.replace(" ", "_")
             .str.replace("-", "_")
-            .str.normalize('NFKD')
-            .str.encode('ascii', errors='ignore')
-            .str.decode('utf-8')
+            .str.normalize("NFKD")
+            .str.encode("ascii", errors="ignore")
+            .str.decode("utf-8")
         )
 
-        ibge_cols = [c for c in df_clean.columns if "ibge" in c or "cd_mun" in c or "codigo_mun" in c or "geocodigo" in c]
+        ibge_cols = [
+            c for c in df_clean.columns if "ibge" in c or "cd_mun" in c or "codigo_mun" in c or "geocodigo" in c
+        ]
         if ibge_cols:
             df_clean = df_clean.rename(columns={ibge_cols[0]: "cod_municipio_ibge"})
 
@@ -252,7 +270,9 @@ class ZarcPipeline(BaseSource):
         dec_cols = [c for c in df_f.columns if c.lower().startswith("dec")]
         if dec_cols:
             id_vars = [c for c in df_f.columns if c not in dec_cols]
-            df_f = df_f.melt(id_vars=id_vars, value_vars=dec_cols, var_name="periodo_plantio", value_name="risco_climatico")
+            df_f = df_f.melt(
+                id_vars=id_vars, value_vars=dec_cols, var_name="periodo_plantio", value_name="risco_climatico"
+            )
 
         # Mapeamento de Solo
         if "cod_solo" in df_f.columns:
@@ -264,7 +284,7 @@ class ZarcPipeline(BaseSource):
         # Remove riscos nulos
         df_f = df_f[df_f["risco_climatico"].notna()]
 
-        upsert_data(FatoRiscoZARC, df_f, index_elements=['id_cultura', 'id_municipio', 'tipo_solo', 'periodo_plantio'])
+        upsert_data(FatoRiscoZARC, df_f, index_elements=["id_cultura", "id_municipio", "tipo_solo", "periodo_plantio"])
         result = f"{len(df_f)} registros processados neste chunk"
         self.log.info(f"Fato ZARC: {result}.")
         return result

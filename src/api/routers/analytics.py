@@ -2,30 +2,36 @@
 Router de Analytics — Endpoints compostos que cruzam múltiplas tabelas do Star Schema.
 Todos os endpoints são somente-leitura e agregam dados de 2+ tabelas fato.
 """
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from sqlalchemy import func
-from typing import List, Optional
-from collections import Counter
 
-from db.manager import (
-    FatoProducaoPAM, FatoRiscoZARC, FatoMeteorologia,
-    FatoProducaoConab, FatoPrecoConabMensal,
-    FatoCultivar, FatoSigefProducao, FatoAgrofit,
-    FatoFertilizante,
-    DimCultura, DimMunicipio
-)
+from collections import Counter
+from typing import List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
 from api.dependencies import get_session
 from api.schemas import (
-    RaioXAgroMunicipalSchema, ProducaoPAMSimplesSchema,
-    DossieInsumosCulturaSchema,
-    ViabilidadeEconomicaSchema,
-    JanelaDeAplicacaoSchema,
     AuditoriaEstimativasSchema,
+    DossieInsumosCulturaSchema,
+    JanelaDeAplicacaoSchema,
+    ProducaoPAMSimplesSchema,
+    RaioXAgroMunicipalSchema,
+    ViabilidadeEconomicaSchema,
 )
-
-
-
+from db.manager import (
+    DimCultura,
+    DimMunicipio,
+    FatoAgrofit,
+    FatoCultivar,
+    FatoFertilizante,
+    FatoMeteorologia,
+    FatoPrecoConabMensal,
+    FatoProducaoConab,
+    FatoProducaoPAM,
+    FatoRiscoZARC,
+    FatoSigefProducao,
+)
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
@@ -59,11 +65,15 @@ def raio_x_municipal(
         raise HTTPException(status_code=404, detail=f"Cultura '{cultura}' não encontrada.")
 
     # --- Produção PAM ---
-    pam = db.query(FatoProducaoPAM).filter(
-        FatoProducaoPAM.id_municipio == mun.id_municipio,
-        FatoProducaoPAM.id_cultura == cult.id_cultura,
-        FatoProducaoPAM.ano == ano,
-    ).first()
+    pam = (
+        db.query(FatoProducaoPAM)
+        .filter(
+            FatoProducaoPAM.id_municipio == mun.id_municipio,
+            FatoProducaoPAM.id_cultura == cult.id_cultura,
+            FatoProducaoPAM.ano == ano,
+        )
+        .first()
+    )
 
     resultado_safra = ProducaoPAMSimplesSchema(
         ano=ano,
@@ -72,11 +82,12 @@ def raio_x_municipal(
     )
 
     # --- Risco ZARC predominante (Calculado via Postgres) ---
-    zarc_rows = db.query(FatoRiscoZARC.risco_climatico).filter(
-        FatoRiscoZARC.id_municipio == mun.id_municipio,
-        FatoRiscoZARC.id_cultura == cult.id_cultura
-    ).all()
-    
+    zarc_rows = (
+        db.query(FatoRiscoZARC.risco_climatico)
+        .filter(FatoRiscoZARC.id_municipio == mun.id_municipio, FatoRiscoZARC.id_cultura == cult.id_cultura)
+        .all()
+    )
+
     risco_predominante = None
     if zarc_rows:
         riscos = [r[0] for r in zarc_rows if r[0]]
@@ -84,16 +95,19 @@ def raio_x_municipal(
             most_common = Counter(riscos).most_common(1)
             risco_predominante = f"{most_common[0][0]}" if most_common else None
 
-
     # --- Resumo Climático do ano (médias e acumulado INMET) ---
-    clima_row = db.query(
-        func.avg(FatoMeteorologia.temp_media_c).label("temp_media"),
-        func.avg(FatoMeteorologia.umidade_media).label("umidade_media"),
-        func.sum(FatoMeteorologia.precipitacao_total_mm).label("precipitacao_anual_mm"),
-    ).filter(
-        FatoMeteorologia.id_municipio == mun.id_municipio,
-        func.extract("year", FatoMeteorologia.data) == ano,
-    ).first()
+    clima_row = (
+        db.query(
+            func.avg(FatoMeteorologia.temp_media_c).label("temp_media"),
+            func.avg(FatoMeteorologia.umidade_media).label("umidade_media"),
+            func.sum(FatoMeteorologia.precipitacao_total_mm).label("precipitacao_anual_mm"),
+        )
+        .filter(
+            FatoMeteorologia.id_municipio == mun.id_municipio,
+            func.extract("year", FatoMeteorologia.data) == ano,
+        )
+        .first()
+    )
 
     resumo_climatico = None
     if clima_row and clima_row.temp_media is not None:
@@ -143,15 +157,22 @@ def dossie_insumos(cultura: str, db: Session = Depends(get_session)):
         raise HTTPException(status_code=404, detail=f"Cultura '{cultura}' não encontrada.")
 
     # Cultivares ativas no RNC
-    cultivares_ativos = db.query(func.count(FatoCultivar.nr_registro)).filter(
-        FatoCultivar.id_cultura == cult.id_cultura,
-        FatoCultivar.situacao.ilike("%REGISTRAD%"),
-    ).scalar() or 0
+    cultivares_ativos = (
+        db.query(func.count(FatoCultivar.nr_registro))
+        .filter(
+            FatoCultivar.id_cultura == cult.id_cultura,
+            FatoCultivar.situacao.ilike("%REGISTRAD%"),
+        )
+        .scalar()
+        or 0
+    )
 
     # Volume total sementes SIGEF (soma producao_bruta_t)
-    vol_sementes = db.query(func.sum(FatoSigefProducao.producao_bruta_t)).filter(
-        FatoSigefProducao.id_cultura == cult.id_cultura
-    ).scalar()
+    vol_sementes = (
+        db.query(func.sum(FatoSigefProducao.producao_bruta_t))
+        .filter(FatoSigefProducao.id_cultura == cult.id_cultura)
+        .scalar()
+    )
 
     # Defensivos Agrofit — nomes únicos de marcas comerciais
     defensivos_rows = (
@@ -178,9 +199,9 @@ def dossie_insumos(cultura: str, db: Session = Depends(get_session)):
     pragas = [r[0] for r in pragas_rows]
 
     # Grau de tecnologia: heurística a partir do número de defensivos registrados
-    total_def = db.query(func.count(FatoAgrofit.id_agrofit)).filter(
-        FatoAgrofit.id_cultura == cult.id_cultura
-    ).scalar() or 0
+    total_def = (
+        db.query(func.count(FatoAgrofit.id_agrofit)).filter(FatoAgrofit.id_cultura == cult.id_cultura).scalar() or 0
+    )
     if total_def >= 100:
         grau = "Alto"
     elif total_def >= 30:
@@ -301,19 +322,26 @@ def janela_aplicacao(
         raise HTTPException(status_code=404, detail=f"Município {codigo_ibge} não encontrado.")
 
     # Estabelecimentos ativos na UF
-    estab_count = db.query(func.count(FatoFertilizante.id_fertilizante)).filter(
-        FatoFertilizante.uf == mun.uf,
-        FatoFertilizante.status_registro.ilike("%ATIVO%"),
-    ).scalar() or 0
+    estab_count = (
+        db.query(func.count(FatoFertilizante.id_fertilizante))
+        .filter(
+            FatoFertilizante.uf == mun.uf,
+            FatoFertilizante.status_registro.ilike("%ATIVO%"),
+        )
+        .scalar()
+        or 0
+    )
 
     # Precipitação acumulada do mês
-    chuva_row = db.query(
-        func.sum(FatoMeteorologia.precipitacao_total_mm).label("chuva_total")
-    ).filter(
-        FatoMeteorologia.id_municipio == mun.id_municipio,
-        func.extract("year", FatoMeteorologia.data) == ano,
-        func.extract("month", FatoMeteorologia.data) == mes,
-    ).first()
+    chuva_row = (
+        db.query(func.sum(FatoMeteorologia.precipitacao_total_mm).label("chuva_total"))
+        .filter(
+            FatoMeteorologia.id_municipio == mun.id_municipio,
+            func.extract("year", FatoMeteorologia.data) == ano,
+            func.extract("month", FatoMeteorologia.data) == mes,
+        )
+        .first()
+    )
 
     chuva_mm = float(chuva_row.chuva_total) if chuva_row and chuva_row.chuva_total else None
 
@@ -384,17 +412,13 @@ def auditoria_estimativas(
 
     # PAM Realizado Consolidadas em uma única query bulk para evitar o N+1 queries!
     pam_rows = (
-        db.query(
-            DimMunicipio.uf,
-            FatoProducaoPAM.ano,
-            func.sum(FatoProducaoPAM.qtde_produzida_ton).label("prod_ton")
-        )
+        db.query(DimMunicipio.uf, FatoProducaoPAM.ano, func.sum(FatoProducaoPAM.qtde_produzida_ton).label("prod_ton"))
         .join(DimMunicipio, FatoProducaoPAM.id_municipio == DimMunicipio.id_municipio)
         .filter(FatoProducaoPAM.id_cultura == cult.id_cultura)
         .group_by(DimMunicipio.uf, FatoProducaoPAM.ano)
         .all()
     )
-    
+
     pam_lookup = {}
     for p_uf, p_ano, p_prod in pam_rows:
         if p_uf and p_ano is not None:

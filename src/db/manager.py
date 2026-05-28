@@ -1,8 +1,20 @@
-import os
 import logging
+import os
+
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean, BigInteger, ForeignKey, DateTime, UniqueConstraint, Index
-from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+from sqlalchemy import (
+    BigInteger,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+    create_engine,
+)
+from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -40,21 +52,20 @@ if os.getenv("USE_SQLITE", "false").lower() == "true":
 else:
     DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
     engine = create_engine(
-        DATABASE_URL, echo=False,
-        pool_size=5, max_overflow=10,
-        pool_pre_ping=True,
-        pool_recycle=3600
+        DATABASE_URL, echo=False, pool_size=5, max_overflow=10, pool_pre_ping=True, pool_recycle=3600
     )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 # Schema: Modelos ORM (Star Schema)
 
+
 class DimCultura(Base):
     __tablename__ = "dim_cultura"
     id_cultura = Column(Integer, primary_key=True, index=True)
     nome_padronizado = Column(String, unique=True, index=True, nullable=False)
-    
+
+
 class DimMunicipio(Base):
     __tablename__ = "dim_municipio"
     id_municipio = Column(Integer, primary_key=True, index=True)
@@ -62,11 +73,13 @@ class DimMunicipio(Base):
     nome = Column(String, nullable=False)
     uf = Column(String, nullable=True, index=True)
 
+
 class DimMantenedor(Base):
     __tablename__ = "dim_mantenedor"
     id_mantenedor = Column(Integer, primary_key=True, autoincrement=True)
     nome = Column(String, unique=True, index=True, nullable=False)
     setor = Column(String, nullable=True)
+
 
 class FatoCultivar(Base):
     __tablename__ = "fato_registro_cultivares"
@@ -81,6 +94,7 @@ class FatoCultivar(Base):
     data_val = Column(DateTime)
     data_modificacao = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
+
 class FatoProducaoPAM(Base):
     __tablename__ = "fato_producao_pam"
     id_producao = Column(Integer, primary_key=True, autoincrement=True)
@@ -92,8 +106,9 @@ class FatoProducaoPAM(Base):
     qtde_produzida_ton = Column(Float)
     valor_producao_mil_reais = Column(Float)
     data_modificacao = Column(DateTime, server_default=func.now(), onupdate=func.now())
-    
-    __table_args__ = (UniqueConstraint('id_cultura', 'id_municipio', 'ano', name='_cultura_municipio_ano_uc'),)
+
+    __table_args__ = (UniqueConstraint("id_cultura", "id_municipio", "ano", name="_cultura_municipio_ano_uc"),)
+
 
 class FatoRiscoZARC(Base):
     __tablename__ = "fato_risco_zarc"
@@ -106,9 +121,10 @@ class FatoRiscoZARC(Base):
     data_modificacao = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     __table_args__ = (
-        UniqueConstraint('id_cultura', 'id_municipio', 'tipo_solo', 'periodo_plantio', name='_zarc_uc'),
-        Index('idx_zarc_municipio_cultura', 'id_municipio', 'id_cultura'),
+        UniqueConstraint("id_cultura", "id_municipio", "tipo_solo", "periodo_plantio", name="_zarc_uc"),
+        Index("idx_zarc_municipio_cultura", "id_municipio", "id_cultura"),
     )
+
 
 class FatoProducaoConab(Base):
     __tablename__ = "fato_producao_conab"
@@ -122,7 +138,8 @@ class FatoProducaoConab(Base):
     produtividade_t_ha = Column(Float)
     data_modificacao = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
-    __table_args__ = (UniqueConstraint('id_cultura', 'uf', 'ano_agricola', 'safra', name='_conab_prod_uc'),)
+    __table_args__ = (UniqueConstraint("id_cultura", "uf", "ano_agricola", "safra", name="_conab_prod_uc"),)
+
 
 class FatoAgrofit(Base):
     __tablename__ = "fato_agrofit"
@@ -137,7 +154,10 @@ class FatoAgrofit(Base):
     praga_comum = Column(String)
     data_modificacao = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
-    __table_args__ = (UniqueConstraint('id_cultura', 'nr_registro', 'marca_comercial', 'praga_comum', name='_agrofit_uc'),)
+    __table_args__ = (
+        UniqueConstraint("id_cultura", "nr_registro", "marca_comercial", "praga_comum", name="_agrofit_uc"),
+    )
+
 
 class FatoPrecoConabMensal(Base):
     __tablename__ = "fato_precos_conab_mensal"
@@ -151,7 +171,12 @@ class FatoPrecoConabMensal(Base):
     nivel_comercializacao = Column(String)
     data_modificacao = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
-    __table_args__ = (UniqueConstraint('id_cultura', 'id_municipio', 'uf', 'ano', 'mes', 'nivel_comercializacao', name='_conab_preco_mensal_uc'),)
+    __table_args__ = (
+        UniqueConstraint(
+            "id_cultura", "id_municipio", "uf", "ano", "mes", "nivel_comercializacao", name="_conab_preco_mensal_uc"
+        ),
+    )
+
 
 class FatoPrecoConabSemanal(Base):
     __tablename__ = "fato_precos_conab_semanal"
@@ -167,7 +192,19 @@ class FatoPrecoConabSemanal(Base):
     nivel_comercializacao = Column(String)
     data_modificacao = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
-    __table_args__ = (UniqueConstraint('id_cultura', 'id_municipio', 'uf', 'ano', 'mes', 'semana', 'nivel_comercializacao', name='_conab_preco_semanal_uc'),)
+    __table_args__ = (
+        UniqueConstraint(
+            "id_cultura",
+            "id_municipio",
+            "uf",
+            "ano",
+            "mes",
+            "semana",
+            "nivel_comercializacao",
+            name="_conab_preco_semanal_uc",
+        ),
+    )
+
 
 class FatoFertilizante(Base):
     __tablename__ = "fato_fertilizantes_estabelecimentos"
@@ -184,7 +221,8 @@ class FatoFertilizante(Base):
     atividade = Column(String)
     classificacao = Column(String)
     data_modificacao = Column(DateTime, server_default=func.now(), onupdate=func.now())
- 
+
+
 class FatoSigefProducao(Base):
     __tablename__ = "fato_sigef_producao"
     id_sigef_producao = Column(Integer, primary_key=True, autoincrement=True)
@@ -201,9 +239,14 @@ class FatoSigefProducao(Base):
     producao_bruta_t = Column(Float)
     producao_est_t = Column(Float)
     data_modificacao = Column(DateTime, server_default=func.now(), onupdate=func.now())
- 
-    __table_args__ = (UniqueConstraint('id_cultura', 'id_municipio', 'safra', 'especie', 'cultivar_raw', 'categoria', name='_sigef_prod_uc'),)
- 
+
+    __table_args__ = (
+        UniqueConstraint(
+            "id_cultura", "id_municipio", "safra", "especie", "cultivar_raw", "categoria", name="_sigef_prod_uc"
+        ),
+    )
+
+
 class FatoSigefReservaSemente(Base):
     __tablename__ = "fato_sigef_reserva_semente"
     id_sigef_reserva = Column(Integer, primary_key=True, autoincrement=True)
@@ -217,9 +260,12 @@ class FatoSigefReservaSemente(Base):
     area_plantada_ha = Column(Float)
     area_estimada_ha = Column(Float)
     data_modificacao = Column(DateTime, server_default=func.now(), onupdate=func.now())
- 
-    __table_args__ = (UniqueConstraint('id_cultura', 'id_municipio', 'periodo', 'especie', 'cultivar_raw', name='_sigef_reserva_uc'),)
- 
+
+    __table_args__ = (
+        UniqueConstraint("id_cultura", "id_municipio", "periodo", "especie", "cultivar_raw", name="_sigef_reserva_uc"),
+    )
+
+
 class FatoMeteorologia(Base):
     __tablename__ = "fato_meteorologia"
     id_meteo = Column(Integer, primary_key=True, autoincrement=True)
@@ -232,10 +278,12 @@ class FatoMeteorologia(Base):
     umidade_media = Column(Float)
     estacao_id = Column(String(50))
     data_modificacao = Column(DateTime, server_default=func.now(), onupdate=func.now())
- 
-    __table_args__ = (UniqueConstraint('id_municipio', 'data', name='_meteo_uc'),)
+
+    __table_args__ = (UniqueConstraint("id_municipio", "data", name="_meteo_uc"),)
+
 
 # Operações: Gerenciamento de Conexão
+
 
 def init_db():
     """DDL: Sincronização de tabelas com o banco."""
@@ -246,6 +294,7 @@ def init_db():
     except Exception as e:
         log.error(f"Erro ao inicializar o banco de dados: {e}")
         raise
+
 
 def get_db():
     """Session: Generator de conexão SQLAlchemy."""

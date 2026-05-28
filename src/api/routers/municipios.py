@@ -1,21 +1,23 @@
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List, Optional
 
-from db.manager import DimMunicipio
 from api.dependencies import get_session
 from api.schemas import MunicipioBaseSchema, PaginatedResponse
 from api.utils import paginate_query
+from db.manager import DimMunicipio
 
 router = APIRouter(prefix="/municipios", tags=["Municípios"])
 
+
 @router.get("/", response_model=PaginatedResponse[MunicipioBaseSchema])
 def list_municipios(
-    uf: Optional[str] = None, 
+    uf: Optional[str] = None,
     nome: Optional[str] = None,
-    page: int = 1, 
-    page_size: int = 50, 
-    db: Session = Depends(get_session)
+    page: int = 1,
+    page_size: int = 50,
+    db: Session = Depends(get_session),
 ):
     query = db.query(DimMunicipio)
     if uf:
@@ -23,6 +25,7 @@ def list_municipios(
     if nome:
         query = query.filter(DimMunicipio.nome.ilike(f"%{nome}%"))
     return paginate_query(query, page, page_size)
+
 
 @router.get("/{codigo_ibge}", response_model=MunicipioBaseSchema)
 def get_municipio(codigo_ibge: str, db: Session = Depends(get_session)):
