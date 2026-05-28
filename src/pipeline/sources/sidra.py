@@ -22,13 +22,8 @@ class SidraPipeline(BaseSource):
     Tabela 5457: Lavouras Temporárias.
     """
 
-    TARGET_CROPS = {
-        "soja": 40124,
-        "milho": 40122,
-        "trigo": 40127,
-        "algodão": 40100,
-        "cana-de-açúcar": 40111
-    }
+    from config import CULTURAS_IBGE_IDS
+    TARGET_CROPS = CULTURAS_IBGE_IDS
 
     def __init__(self, ano: str = "2021", data_dir: str = "data/sidra", use_cache: bool = True):
         super().__init__()

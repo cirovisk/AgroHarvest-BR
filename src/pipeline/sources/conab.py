@@ -133,7 +133,7 @@ class ConabPipeline(BaseSource):
         df = df.rename(columns=renames)
         cols_num = ["area_plantada_mil_ha", "producao_mil_t", "produtividade_t_ha"]
         for col in cols_num:
-            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0.0)
+            df[col] = pd.to_numeric(df[col], errors="coerce")
 
         df["cultura"] = normalize_string(df["produto_raw"])
         cols_final = ["ano_agricola", "safra", "uf", "cultura", "area_plantada_mil_ha", "producao_mil_t", "produtividade_t_ha"]
@@ -159,7 +159,7 @@ class ConabPipeline(BaseSource):
 
         # Casting e Limpeza
         if "valor_kg" in df.columns:
-            df["valor_kg"] = pd.to_numeric(df["valor_kg"].str.replace(",", "."), errors="coerce").fillna(0.0)
+            df["valor_kg"] = pd.to_numeric(df["valor_kg"].str.replace(",", "."), errors="coerce")
         if "ano" in df.columns:
             df["ano"] = pd.to_numeric(df["ano"], errors="coerce").fillna(0).astype(int)
         if "mes" in df.columns:

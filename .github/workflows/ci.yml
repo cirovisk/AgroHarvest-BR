@@ -40,8 +40,21 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements-dev.txt
 
+    - name: Run Ruff Linter
+      run: |
+        ruff check src/
+
+    - name: Run Ruff Formatter
+      run: |
+        ruff format --check src/
+
+    - name: Run Mypy Type Checker
+      run: |
+        mypy --ignore-missing-imports src/
+
     - name: Run tests
       env:
         USE_SQLITE: "true"
+        PYTHONPATH: "src"
       run: |
         pytest tests/ -v

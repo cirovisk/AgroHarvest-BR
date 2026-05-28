@@ -110,7 +110,7 @@ class SigefPipeline(BaseSource):
         num_cols = ["area_ha", "producao_bruta_t", "producao_est_t"]
         for col in num_cols:
             if col in df.columns:
-                df[col] = pd.to_numeric(df[col].astype(str).str.replace(",", "."), errors="coerce").fillna(0.0)
+                df[col] = pd.to_numeric(df[col].astype(str).str.replace(",", "."), errors="coerce")
 
         date_cols = ["data_plantio", "data_colheita"]
         for col in date_cols:
@@ -144,7 +144,7 @@ class SigefPipeline(BaseSource):
         num_cols = ["area_total_ha", "area_plantada_ha", "area_estimada_ha", "quantidade_reservada_t"]
         for col in num_cols:
             if col in df.columns:
-                df[col] = pd.to_numeric(df[col].astype(str).str.replace(",", "."), errors="coerce").fillna(0.0)
+                df[col] = pd.to_numeric(df[col].astype(str).str.replace(",", "."), errors="coerce")
 
         if "especie" in df.columns:
             df["cultura"] = normalize_string(df["especie"])

@@ -96,7 +96,7 @@ class FertilizanteSchema(BaseModel):
     
     model_config = ConfigDict(from_attributes=True)
 
-class MetereologiaSchema(BaseModel):
+class MeteorologiaSchema(BaseModel):
     id_meteo: int
     data: date
     precipitacao_total_mm: Optional[float] = None

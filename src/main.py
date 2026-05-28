@@ -24,7 +24,7 @@ import pipeline.sources  # noqa: F401
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
 
-CULTURAS_ALVO = ["soja", "milho", "trigo", "algodão", "cana-de-açúcar"]
+from config import CULTURAS_ALVO
 
 
 def main():
