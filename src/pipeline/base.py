@@ -43,6 +43,6 @@ class BaseSource(ABC):
         Verifica se um arquivo local está desatualizado baseado na sua idade.
         """
         if not os.path.exists(path):
-            return False
+            return True
         file_age_days = (time.time() - os.path.getmtime(path)) / (24 * 3600)
         return file_age_days > threshold_days

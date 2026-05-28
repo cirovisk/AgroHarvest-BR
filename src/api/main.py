@@ -1,20 +1,37 @@
+import os
 import logging
 import traceback
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
+from dotenv import load_dotenv
+
+# Garante que as variáveis de ambiente locais do .env sejam carregadas
+load_dotenv()
 
 from api.routers import culturas, municipios, producao, insumos, clima, analytics, zarc
 
-limiter = Limiter(key_func=get_remote_address, default_limits=["30 per minute"])
+# Lê limite de rate limit de forma dinâmica, com fallback seguro para 30
+rate_limit_val = os.getenv("API_LIMIT_PER_MINUTE", "30").strip()
+limiter = Limiter(key_func=get_remote_address, default_limits=[f"{rate_limit_val} per minute"])
 
 app = FastAPI(
     title="AgroHarvest API",
     description="API somente-leitura para dados agropecuários do projeto AgroHarvest BR.",
     version="1.0.0"
+)
+
+# Configura CORS para permitir integração perfeita com Metabase ou outras aplicações frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.state.limiter = limiter

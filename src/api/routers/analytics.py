@@ -382,6 +382,24 @@ def auditoria_estimativas(
 
     conab_rows = conab_q.limit(50).all()
 
+    # PAM Realizado Consolidadas em uma única query bulk para evitar o N+1 queries!
+    pam_rows = (
+        db.query(
+            DimMunicipio.uf,
+            FatoProducaoPAM.ano,
+            func.sum(FatoProducaoPAM.qtde_produzida_ton).label("prod_ton")
+        )
+        .join(DimMunicipio, FatoProducaoPAM.id_municipio == DimMunicipio.id_municipio)
+        .filter(FatoProducaoPAM.id_cultura == cult.id_cultura)
+        .group_by(DimMunicipio.uf, FatoProducaoPAM.ano)
+        .all()
+    )
+    
+    pam_lookup = {}
+    for p_uf, p_ano, p_prod in pam_rows:
+        if p_uf and p_ano is not None:
+            pam_lookup[(str(p_uf).upper().strip(), int(p_ano))] = float(p_prod) if p_prod else 0.0
+
     results = []
     for row in conab_rows:
         # Extraímos o ano de início da safra para buscar no PAM
@@ -391,19 +409,8 @@ def auditoria_estimativas(
         except (ValueError, AttributeError, IndexError):
             continue
 
-        # PAM: produção realizada na UF naquele ano (soma municípios) em mil toneladas
-        pam_row = (
-            db.query(func.sum(FatoProducaoPAM.qtde_produzida_ton).label("prod_ton"))
-            .join(DimMunicipio, FatoProducaoPAM.id_municipio == DimMunicipio.id_municipio)
-            .filter(
-                FatoProducaoPAM.id_cultura == cult.id_cultura,
-                DimMunicipio.uf == row.uf,
-                FatoProducaoPAM.ano == ano_pam,
-            )
-            .first()
-        )
-
-        realizado_ton = float(pam_row.prod_ton) if pam_row and pam_row.prod_ton else None
+        # PAM Realizado buscado em O(1) do dicionário em memória
+        realizado_ton = pam_lookup.get((str(row.uf).upper().strip(), ano_pam), None)
         realizado_mil_t = (realizado_ton / 1000.0) if realizado_ton else None
         estimativa_mil_t = float(row.estimativa_mil_t) if row.estimativa_mil_t else None
 

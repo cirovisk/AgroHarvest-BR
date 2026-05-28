@@ -104,7 +104,7 @@ def carregar_municipios_completo_ibge(db):
             # Caminho 2 (Fallback): Região Imediata -> Região Intermediária -> UF
             if not uf:
                 uf = m.get("regiao-imediata", {}).get("regiao-intermediaria", {}).get("UF", {}).get("sigla")
-        except:
+        except Exception:
             uf = "XX" # Fallback extremo para não quebrar a carga
             
         uf = str(uf).upper() if uf else "XX"
