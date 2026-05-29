@@ -38,46 +38,48 @@ def main():
 
     log.info("--- Iniciando Pipeline AgroHarvest BR (Registry) ---")
     init_db()
-    db = next(get_db())
 
-    # Lookups compartilhados (construídos uma vez, usados por todos)
-    lookups = {
-        "db": db,
-        "culturas": preencher_dimensao_cultura(db, CULTURAS_ALVO),
-        "municipios_ibge": {},
-        "municipios_nome": {},
-    }
-    map_ibge, map_nome = carregar_municipios_completo_ibge(db)
-    lookups["municipios_ibge"] = map_ibge
-    lookups["municipios_nome"] = map_nome
+    from contextlib import closing
 
-    success, failed = [], []
-    alert = AlertManager()
-    _start = time.monotonic()
+    with closing(next(get_db())) as db:
+        # Lookups compartilhados (construídos uma vez, usados por todos)
+        lookups = {
+            "db": db,
+            "culturas": preencher_dimensao_cultura(db, CULTURAS_ALVO),
+            "municipios_ibge": {},
+            "municipios_nome": {},
+        }
+        map_ibge, map_nome = carregar_municipios_completo_ibge(db)
+        lookups["municipios_ibge"] = map_ibge
+        lookups["municipios_nome"] = map_nome
 
-    for name in args.sources:
-        source_cls = sources.get(name)
-        if not source_cls:
-            log.warning(f"Fonte '{name}' não registrada — pulando.")
-            continue
-        pipeline = source_cls()
-        try:
-            result = pipeline.run(lookups)
-            success.append(name)
-            log.info(f"✓ {name}: {result}")
-        except Exception as e:
-            failed.append(name)
-            log.error(f"✗ {name}: {e}")
-            alert.record_error(name, e)
-        finally:
-            gc.collect()
+        success, failed = [], []
+        alert = AlertManager()
+        _start = time.monotonic()
 
-    log.info("--- Pipeline Concluído ---")
-    log.info(f"Sucesso: {success}")
-    if failed:
-        log.warning(f"Falhas: {failed}")
+        for name in args.sources:
+            source_cls = sources.get(name)
+            if not source_cls:
+                log.warning(f"Fonte '{name}' não registrada — pulando.")
+                continue
+            pipeline = source_cls()
+            try:
+                result = pipeline.run(lookups)
+                success.append(name)
+                log.info(f"✓ {name}: {result}")
+            except Exception as e:
+                failed.append(name)
+                log.error(f"✗ {name}: {e}")
+                alert.record_error(name, e)
+            finally:
+                gc.collect()
 
-    alert.send_report(success=success, failed=failed, duration=time.monotonic() - _start)
+        log.info("--- Pipeline Concluído ---")
+        log.info(f"Sucesso: {success}")
+        if failed:
+            log.warning(f"Falhas: {failed}")
+
+        alert.send_report(success=success, failed=failed, duration=time.monotonic() - _start)
 
 
 if __name__ == "__main__":

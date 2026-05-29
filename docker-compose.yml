@@ -3,16 +3,16 @@ services:
     image: postgres:16-alpine
     container_name: cultivares_pg
     environment:
-      POSTGRES_USER: cultivares_user
-      POSTGRES_PASSWORD: cultivares_password
-      POSTGRES_DB: cultivares_db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./docs/setup_api_reader.sql:/docker-entrypoint-initdb.d/01_setup_api_reader.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cultivares_user -d cultivares_db"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -63,8 +63,8 @@ services:
     volumes:
       - .:/app
     environment:
-      - POSTGRES_USER=api_reader
-      - POSTGRES_PASSWORD=api_reader_pass
+      - POSTGRES_USER=${API_READER_USER:-api_reader}
+      - POSTGRES_PASSWORD=${API_READER_PASSWORD:-api_reader_pass}
       - PYTHONPATH=/app/src
     ports:
       - "8000:8000"
