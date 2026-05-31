@@ -214,16 +214,15 @@ class ConabPipeline(BaseSource):
                 index = ["id_cultura", "id_municipio", "uf", "ano", "mes", "nivel_comercializacao"]
                 upsert_data(FatoPrecoConabMensal, df_f, index_elements=index)
             elif "semanal" in key:
-                # Política semanal de 4 semanas
-                with engine.connect() as conn:
+                # Política semanal de 4 semanas — bloco transacional único e seguro
+                with engine.begin() as conn:
                     count = (
                         conn.execute(text("SELECT COUNT(DISTINCT semana) FROM fato_precos_conab_semanal")).scalar() or 0
                     )
-                if count >= 4:
-                    with engine.begin() as conn:
+                    if count >= 4:
                         conn.execute(text("TRUNCATE TABLE fato_precos_conab_semanal"))
-                index = ["id_cultura", "id_municipio", "uf", "ano", "mes", "semana", "nivel_comercializacao"]
-                upsert_data(FatoPrecoConabSemanal, df_f, index_elements=index)
+                    index = ["id_cultura", "id_municipio", "uf", "ano", "mes", "semana", "nivel_comercializacao"]
+                    upsert_data(FatoPrecoConabSemanal, df_f, index_elements=index, connection=conn)
 
             total += len(df_f)
             self.log.info(f"Fato CONAB ({key}): Upsert concluído.")

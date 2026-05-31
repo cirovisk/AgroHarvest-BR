@@ -27,9 +27,9 @@ class SidraPipeline(BaseSource):
 
     TARGET_CROPS = CULTURAS_IBGE_IDS
 
-    def __init__(self, ano: str = "2021", data_dir: str = "data/sidra", use_cache: bool = True):
+    def __init__(self, ano: str | None = None, data_dir: str = "data/sidra", use_cache: bool = True):
         super().__init__()
-        self.ano = ano
+        self.ano = ano or os.getenv("SIDRA_ANO_DEFAULT", "2021")
         self.data_dir = data_dir
         self.use_cache = use_cache
         if not os.path.exists(self.data_dir):

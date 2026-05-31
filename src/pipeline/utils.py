@@ -112,7 +112,7 @@ def _get_model_meta(model):
     return _model_meta_cache[model]
 
 
-def upsert_data(model, df, index_elements, chunk_size=1000):
+def upsert_data(model, df, index_elements, chunk_size=1000, connection=None):
     if df.empty:
         return
 
@@ -125,8 +125,7 @@ def upsert_data(model, df, index_elements, chunk_size=1000):
     model_int_cols = meta["int_cols"]
     model_cols = meta["all_cols"]
 
-    # Conexão única para todos os chunks — evita overhead de abrir/fechar transação por chunk
-    with engine.begin() as conn:
+    def _execute_chunks(conn):
         for i in range(0, len(df), chunk_size):
             chunk_df = df.iloc[i : i + chunk_size]
             records = chunk_df.to_dict(orient="records")
@@ -163,3 +162,10 @@ def upsert_data(model, df, index_elements, chunk_size=1000):
             upsert_stmt = stmt.on_conflict_do_update(index_elements=index_elements, set_=update_cols)
 
             conn.execute(upsert_stmt)
+
+    if connection is not None:
+        _execute_chunks(connection)
+    else:
+        # Conexão única para todos os chunks — evita overhead de abrir/fechar transação por chunk
+        with engine.begin() as conn:
+            _execute_chunks(conn)
