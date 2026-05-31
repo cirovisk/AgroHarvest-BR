@@ -34,7 +34,7 @@ if _raw_origins:
     _origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
     _allow_credentials = True  # origins específicas permitem credentials
 else:
-    _origins = ["*"]          # wildcard: sem credentials (obrigatório pelo spec CORS)
+    _origins = ["*"]  # wildcard: sem credentials (obrigatório pelo spec CORS)
     _allow_credentials = False
 
 app.add_middleware(

@@ -42,15 +42,15 @@ jobs:
 
     - name: Run Ruff Linter
       run: |
-        ruff check src/
+        ruff check src/ --no-cache
 
     - name: Run Ruff Formatter
       run: |
-        ruff format --check src/
+        ruff format --check src/ --no-cache
 
     - name: Run Mypy Type Checker
       run: |
-        mypy --ignore-missing-imports src/
+        mypy --ignore-missing-imports --cache-dir /tmp/mypy_cache src/
 
     - name: Run tests
       env:
