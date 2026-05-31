@@ -7,8 +7,8 @@ def paginate_query(query, page: int, page_size: int):
         page = 1
     if page_size < 1:
         page_size = 10
-    elif page_size > 500:
-        page_size = 500
+    elif page_size > 100:
+        page_size = 100
 
     # Usa subquery otimizada para COUNT, evitando re-execução da query principal completa
     total = query.with_entities(func.count()).order_by(None).scalar()

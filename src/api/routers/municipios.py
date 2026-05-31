@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from api.dependencies import get_session
@@ -15,8 +15,8 @@ router = APIRouter(prefix="/municipios", tags=["Municípios"])
 def list_municipios(
     uf: Optional[str] = None,
     nome: Optional[str] = None,
-    page: int = 1,
-    page_size: int = 50,
+    page: int = Query(1, ge=1, description="Número da página"),
+    page_size: int = Query(20, ge=1, le=100, description="Itens por página (máximo: 100)"),
     db: Session = Depends(get_session),
 ):
     query = db.query(DimMunicipio)

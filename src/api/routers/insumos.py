@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from api.dependencies import get_session
@@ -15,8 +15,8 @@ router = APIRouter(prefix="/insumos", tags=["Insumos"])
 def get_agrofit(
     cultura: Optional[str] = None,
     classe: Optional[str] = None,
-    page: int = 1,
-    page_size: int = 20,
+    page: int = Query(1, ge=1, description="Número da página"),
+    page_size: int = Query(20, ge=1, le=100, description="Itens por página (máximo: 100)"),
     db: Session = Depends(get_session),
 ):
     query = db.query(
@@ -40,8 +40,8 @@ def get_agrofit(
 def get_fertilizantes(
     uf: Optional[str] = None,
     atividade: Optional[str] = None,
-    page: int = 1,
-    page_size: int = 20,
+    page: int = Query(1, ge=1, description="Número da página"),
+    page_size: int = Query(20, ge=1, le=100, description="Itens por página (máximo: 100)"),
     db: Session = Depends(get_session),
 ):
     query = db.query(
