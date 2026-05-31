@@ -26,13 +26,23 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Configura CORS para permitir integração perfeita com Metabase ou outras aplicações frontend
+# --- CORS ---
+# ALLOWED_ORIGINS: lista separada por vírgulas, ex: "http://localhost:3000,https://meudominio.com"
+# Quando não configurado, usa wildcard SEM credentials (seguro para APIs públicas read-only).
+_raw_origins = os.getenv("ALLOWED_ORIGINS", "").strip()
+if _raw_origins:
+    _origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+    _allow_credentials = True  # origins específicas permitem credentials
+else:
+    _origins = ["*"]          # wildcard: sem credentials (obrigatório pelo spec CORS)
+    _allow_credentials = False
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_origins,
+    allow_credentials=_allow_credentials,
+    allow_methods=["GET", "OPTIONS"],  # API somente-leitura
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 app.state.limiter = limiter
