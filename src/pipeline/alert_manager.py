@@ -1,13 +1,6 @@
 """
-Sistema de Alertas do Pipeline AgroHarvest (PostgreSQL).
-
-- Grava um JSON de status em data/logs/ após cada execução.
-- Envia resumo no Telegram via Bot API (opcional, requer TELEGRAM_BOT_TOKEN e TELEGRAM_CHAT_ID no .env).
-
-Uso no main.py:
-    alert = AlertManager()
-    alert.record_error("zarc", exception)
-    alert.send_report(success=["conab"], failed=["zarc"], duration=42.3)
+Pipeline Alert Manager (PostgreSQL).
+Salva status JSON de execução em data/logs/.
 """
 
 import json
@@ -28,35 +21,18 @@ class AlertManager:
         self.errors: list[dict] = []
         self.warnings: list[str] = []
         self.started_at: float = time.monotonic()
+        # ISO timestamp formatado UTC seguro para sistema de arquivos
         self.start_ts: str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
         self._log_dir: Path = Path(os.getenv("LOG_STATUS_PATH", "data/logs"))
 
-    # ------------------------------------------------------------------
-    # Coleta de eventos
-    # ------------------------------------------------------------------
-
     def record_error(self, source: str, exc: Exception) -> None:
-        """Registra uma falha de source para inclusão no relatório."""
         self.errors.append({"source": source, "message": str(exc)})
 
     def record_warning(self, message: str) -> None:
-        """Registra um aviso livre para inclusão no relatório."""
         self.warnings.append(message)
 
-    # ------------------------------------------------------------------
-    # Relatório final
-    # ------------------------------------------------------------------
-
     def send_report(self, success: list[str], failed: list[str], duration: float | None = None) -> None:
-        """
-        Salva o JSON de status localmente.
-
-        Args:
-            success: Lista de sources que concluíram com êxito.
-            failed:  Lista de sources que falharam.
-            duration: Duração total em segundos (calculada automaticamente se omitida).
-        """
         if duration is None:
             duration = time.monotonic() - self.started_at
 
@@ -84,10 +60,6 @@ class AlertManager:
 
         self._save_json(payload)
 
-    # ------------------------------------------------------------------
-    # Persistência JSON
-    # ------------------------------------------------------------------
-
     def _save_json(self, payload: dict) -> None:
         try:
             self._log_dir.mkdir(parents=True, exist_ok=True)
@@ -97,4 +69,5 @@ class AlertManager:
             log.info(f"[AlertManager] Status gravado em: {out_path}")
         except Exception as e:
             log.error(f"[AlertManager] Falha ao gravar JSON de status: {e}")
+
 
