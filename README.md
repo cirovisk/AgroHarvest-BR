@@ -11,7 +11,7 @@ O objetivo principal é criar um ambiente unificado para análise de dados agro,
 
 ## 🖥️ Dashboard - Visualização de Dados
 
-![Dashboard AgroHarvest Success](./assets/dashboard.gif)
+![Dashboard AgroHarvest Success](./docs/assets/dashboard.gif)
 
 *Visualização analítica consolidada no Metabase, integrando fluxos de produção (PAM), viabilidade climática (ZARC) e registros genéticos (RNC/SIGEF).*
 
