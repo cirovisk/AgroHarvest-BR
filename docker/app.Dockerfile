@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install python dependencies
-COPY requirements.txt requirements-dev.txt ./
+COPY docker/requirements.txt docker/requirements-dev.txt ./
 RUN pip install --no-cache-dir -r requirements-dev.txt
 
 # Cria um grupo e um usuário não-root (UID/GID 1000 para alinhar com o host em volumes montados)
