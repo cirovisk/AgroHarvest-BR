@@ -35,7 +35,6 @@ class SidraPipeline(BaseSource):
         if not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir, exist_ok=True)
 
-    # ---- EXTRACT ----
 
     def _map_culture_ids(self) -> dict:
         """Metadados: Consulta de IDs de categoria no IBGE."""
@@ -121,7 +120,6 @@ class SidraPipeline(BaseSource):
 
         return final_df
 
-    # ---- CLEAN ----
 
     def clean(self, df: pd.DataFrame) -> pd.DataFrame:
         if df.empty:
@@ -187,7 +185,6 @@ class SidraPipeline(BaseSource):
 
         return df_pivot
 
-    # ---- LOAD ----
 
     def load(self, df: pd.DataFrame, lookups: dict) -> str:
         if df.empty:

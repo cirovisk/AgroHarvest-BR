@@ -15,9 +15,7 @@ from db.manager import engine
 log = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
 # Normalização de Strings
-# ---------------------------------------------------------------------------
 
 
 def normalize_string(series: pd.Series) -> pd.Series:
@@ -32,9 +30,7 @@ def normalize_string(series: pd.Series) -> pd.Series:
     return series.apply(remove_accents).str.strip()
 
 
-# ---------------------------------------------------------------------------
 # Lookup de Cultura (com Sinônimos)
-# ---------------------------------------------------------------------------
 
 
 def get_cultura_id(nome_cultura, mapping):
@@ -79,9 +75,7 @@ def get_cultura_id(nome_cultura, mapping):
     return None
 
 
-# ---------------------------------------------------------------------------
 # Mapeamento de Município por Nome
-# ---------------------------------------------------------------------------
 
 
 def map_municipio_by_name(df, map_mun_name):
@@ -92,16 +86,13 @@ def map_municipio_by_name(df, map_mun_name):
     return keys.map(lookup).where(has_mun)
 
 
-# ---------------------------------------------------------------------------
 # Upsert Genérico (PostgreSQL ON CONFLICT)
-# ---------------------------------------------------------------------------
 
 # Cache de metadados ORM por modelo para evitar inspect() repetido em cada chamada
 _model_meta_cache = {}
 
 
 def _get_model_meta(model):
-    """Retorna metadados do modelo ORM cacheados (pk_cols, int_cols, all_cols)."""
     if model not in _model_meta_cache:
         mapper = inspect(model)
         _model_meta_cache[model] = {

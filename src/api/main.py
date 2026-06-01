@@ -26,7 +26,6 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# --- CORS ---
 # ALLOWED_ORIGINS: lista separada por vírgulas, ex: "http://localhost:3000,https://meudominio.com"
 # Quando não configurado, usa wildcard SEM credentials (seguro para APIs públicas read-only).
 _raw_origins = os.getenv("ALLOWED_ORIGINS", "").strip()

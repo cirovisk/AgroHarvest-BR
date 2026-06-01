@@ -26,10 +26,8 @@ def register(name: str):
 
 
 def get_sources() -> dict[str, type]:
-    """Retorna todas as fontes registradas."""
     return _SOURCES.copy()
 
 
 def get_source(name: str):
-    """Retorna uma fonte específica pelo nome."""
     return _SOURCES.get(name)

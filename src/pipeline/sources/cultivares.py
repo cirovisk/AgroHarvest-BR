@@ -62,7 +62,6 @@ class CultivaresPipeline(BaseSource):
         self.use_cache = use_cache
         self.cache_path = Path(cache_path).resolve()
 
-    # ---- EXTRACT ----
 
     def extract(self, **kwargs) -> pd.DataFrame:
         if self.use_cache and self.cache_path.exists():
@@ -103,7 +102,6 @@ class CultivaresPipeline(BaseSource):
             keep_default_na=True,
         )
 
-    # ---- CLEAN ----
 
     def clean(self, df: pd.DataFrame) -> pd.DataFrame:
         if df.empty:
@@ -214,7 +212,6 @@ class CultivaresPipeline(BaseSource):
 
         return df_clean
 
-    # ---- LOAD ----
 
     def load(self, df: pd.DataFrame, lookups: dict) -> str:
         if df.empty:

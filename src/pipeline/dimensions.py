@@ -132,7 +132,6 @@ def preencher_dimensao_municipio(db, df_pam=pd.DataFrame(), df_zarc=pd.DataFrame
 
     novos_objetos = []
 
-    # 1. PAM
     if not df_pam.empty:
         pam_muns = (
             df_pam[["cod_municipio_ibge", "municipio_nome", "uf"]]
@@ -153,7 +152,6 @@ def preencher_dimensao_municipio(db, df_pam=pd.DataFrame(), df_zarc=pd.DataFrame
                     mun_map_name[(row["municipio_nome"].lower().strip(), uf)] = db_mun.id_municipio
         db.commit()
 
-    # 2. ZARC
     if not df_zarc.empty and "cod_municipio_ibge" in df_zarc.columns:
         zarc_muns = (
             df_zarc[["cod_municipio_ibge", "municipio", "uf"]].drop_duplicates().dropna(subset=["cod_municipio_ibge"])

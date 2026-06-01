@@ -15,7 +15,6 @@ class PaginatedResponse(BaseModel, Generic[T]):
 
 
 # ==========================================
-# 1. SCHEMAS SIMPLES (Pesquisas Rápidas e Listagens)
 # ==========================================
 
 
@@ -120,7 +119,6 @@ class MeteorologiaSchema(BaseModel):
 
 
 # ==========================================
-# 2. SCHEMAS COMPOSTOS (Visões Analíticas Avançadas)
 # ==========================================
 
 

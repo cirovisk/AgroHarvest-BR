@@ -36,10 +36,8 @@ from db.manager import (
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
 
-# ---------------------------------------------------------------------------
 # 2.1  Raio-X Agroclimático Municipal
 #      Fontes: PAM (IBGE) + ZARC (MAPA) + Meteorologia (INMET)
-# ---------------------------------------------------------------------------
 @router.get(
     "/raio-x-municipal",
     response_model=RaioXAgroMunicipalSchema,
@@ -64,7 +62,6 @@ def raio_x_municipal(
     if not cult:
         raise HTTPException(status_code=404, detail=f"Cultura '{cultura}' não encontrada.")
 
-    # --- Produção PAM ---
     pam = (
         db.query(FatoProducaoPAM)
         .filter(
@@ -81,7 +78,6 @@ def raio_x_municipal(
         qtde_produzida_ton=pam.qtde_produzida_ton if pam else None,
     )
 
-    # --- Risco ZARC predominante (Calculado via Postgres) ---
     zarc_rows = (
         db.query(FatoRiscoZARC.risco_climatico)
         .filter(FatoRiscoZARC.id_municipio == mun.id_municipio, FatoRiscoZARC.id_cultura == cult.id_cultura)
@@ -95,7 +91,6 @@ def raio_x_municipal(
             most_common = Counter(riscos).most_common(1)
             risco_predominante = f"{most_common[0][0]}" if most_common else None
 
-    # --- Resumo Climático do ano (médias e acumulado INMET) ---
     clima_row = (
         db.query(
             func.avg(FatoMeteorologia.temp_media_c).label("temp_media"),
@@ -136,10 +131,8 @@ def raio_x_municipal(
     )
 
 
-# ---------------------------------------------------------------------------
 # 2.2  Dossiê de Insumos por Cultura
 #      Fontes: RNC (MAPA/Cultivares) + SIGEF + Agrofit
-# ---------------------------------------------------------------------------
 @router.get(
     "/dossie-insumos/{cultura}",
     response_model=DossieInsumosCulturaSchema,
@@ -219,10 +212,8 @@ def dossie_insumos(cultura: str, db: Session = Depends(get_session)):
     )
 
 
-# ---------------------------------------------------------------------------
 # 2.3  Viabilidade Econômica
 #      Fontes: PAM (produção IBGE) + Preços CONAB Mensal
-# ---------------------------------------------------------------------------
 @router.get(
     "/viabilidade-economica",
     response_model=ViabilidadeEconomicaSchema,
@@ -296,10 +287,8 @@ def viabilidade_economica(
     )
 
 
-# ---------------------------------------------------------------------------
 # 2.4  Janela de Aplicação de Insumos
 #      Fontes: Fertilizantes (SIPEAGRO) + Meteorologia (INMET)
-# ---------------------------------------------------------------------------
 @router.get(
     "/janela-aplicacao",
     response_model=JanelaDeAplicacaoSchema,
@@ -371,10 +360,8 @@ def janela_aplicacao(
     )
 
 
-# ---------------------------------------------------------------------------
 # 2.5  Auditoria de Estimativas
 #      Fontes: CONAB (estimativa) × PAM/IBGE (realizado)
-# ---------------------------------------------------------------------------
 @router.get(
     "/auditoria-estimativas",
     response_model=List[AuditoriaEstimativasSchema],
