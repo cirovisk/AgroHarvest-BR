@@ -34,7 +34,6 @@ class SigefPipeline(BaseSource):
         if not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir, exist_ok=True)
 
-
     def extract(self, **kwargs) -> dict:
         dataframes = {}
         for key, url in self.RESOURCES.items():
@@ -74,7 +73,6 @@ class SigefPipeline(BaseSource):
                     dataframes[key] = pd.read_csv(local_path, sep=";", encoding="utf-8", on_bad_lines="skip", dtype=str)
 
         return dataframes
-
 
     def clean(self, dataframes: dict) -> dict:
         processed = {}
@@ -174,7 +172,6 @@ class SigefPipeline(BaseSource):
             df["cultura"] = normalize_string(df["especie"])
 
         return df
-
 
     def load(self, df_dict: dict, lookups: dict) -> str:
         if not isinstance(df_dict, dict):

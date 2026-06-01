@@ -69,5 +69,3 @@ class AlertManager:
             log.info(f"[AlertManager] Status gravado em: {out_path}")
         except Exception as e:
             log.error(f"[AlertManager] Falha ao gravar JSON de status: {e}")
-
-

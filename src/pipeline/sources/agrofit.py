@@ -30,7 +30,6 @@ class AgrofitPipeline(BaseSource):
         self.use_cache = use_cache
         self.cache_path = Path(cache_path).resolve()
 
-
     def extract(self, **kwargs) -> pd.DataFrame:
         if self.use_cache and self.cache_path.exists():
             if not self.is_file_stale(str(self.cache_path), threshold_days=30):
@@ -56,7 +55,6 @@ class AgrofitPipeline(BaseSource):
 
     def _read_csv(self) -> pd.DataFrame:
         return pd.read_csv(self.cache_path, sep=";", encoding="utf-8", dtype=str, on_bad_lines="skip", low_memory=False)
-
 
     def clean(self, df: pd.DataFrame) -> pd.DataFrame:
         if df.empty:
@@ -92,7 +90,6 @@ class AgrofitPipeline(BaseSource):
             )
 
         return df
-
 
     def load(self, df: pd.DataFrame, lookups: dict) -> str:
         if df.empty:

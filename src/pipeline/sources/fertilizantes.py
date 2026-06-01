@@ -31,7 +31,6 @@ class FertilizantesPipeline(BaseSource):
         if not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir, exist_ok=True)
 
-
     def extract(self, **kwargs) -> pd.DataFrame:
         """Extrai o arquivo de fertilizantes."""
         local_path = os.path.join(self.data_dir, self.FILENAME)
@@ -103,7 +102,6 @@ class FertilizantesPipeline(BaseSource):
             f.write(resp.content)
         self.log.info(f"Download concluído: {self.FILENAME} ({len(resp.content) / 1024:.1f} KB)")
 
-
     def clean(self, df: pd.DataFrame) -> pd.DataFrame:
         if df.empty:
             return df
@@ -136,7 +134,6 @@ class FertilizantesPipeline(BaseSource):
             f"Cleaner SIPEAGRO concluído: {len(df)} estabelecimento(s). Sem número de registro: {sem_registro}."
         )
         return df
-
 
     def load(self, df: pd.DataFrame, lookups: dict) -> str:
         if df.empty:
