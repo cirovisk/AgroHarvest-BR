@@ -52,12 +52,11 @@ def preencher_dimensao_mantenedor(db, df_cult):
     # Bulk: busca todos os nomes existentes em 1 query (vs. N queries individuais)
     existing_names = set(r[0] for r in db.query(DimMantenedor.nome).all())
 
-    novos_objetos = []
-    for _, row in unique_mants.iterrows():
-        nome = row["mantenedor"]
-        if nome not in existing_names:
-            setor = row[col_setor] if col_setor else None
-            novos_objetos.append(DimMantenedor(nome=nome, setor=setor))
+    new_mants = unique_mants[~unique_mants["mantenedor"].isin(existing_names)]
+    novos_objetos = [
+        DimMantenedor(nome=row["mantenedor"], setor=row[col_setor] if col_setor else None)
+        for row in new_mants.to_dict(orient="records")
+    ]
 
     if novos_objetos:
         db.bulk_save_objects(novos_objetos)
@@ -131,6 +130,7 @@ def preencher_dimensao_municipio(db, df_pam=pd.DataFrame(), df_zarc=pd.DataFrame
             mun_map_name[(m.nome.lower().strip(), m.uf)] = m.id_municipio
 
     novos_objetos = []
+    novos_codigos = set()
 
     if not df_pam.empty:
         pam_muns = (
@@ -138,36 +138,28 @@ def preencher_dimensao_municipio(db, df_pam=pd.DataFrame(), df_zarc=pd.DataFrame
             .drop_duplicates()
             .dropna(subset=["cod_municipio_ibge"])
         )
-        for _, row in pam_muns.iterrows():
+        for row in pam_muns.to_dict(orient="records"):
             cod = str(row["cod_municipio_ibge"])[:7]
-            uf = str(row["uf"]).strip().upper() if pd.notna(row["uf"]) else None
-            db_mun = db.query(DimMunicipio).filter(DimMunicipio.codigo_ibge == cod).first()
-            if not db_mun:
+            if cod not in mun_map_ibge and cod not in novos_codigos:
+                uf = str(row["uf"]).strip().upper() if pd.notna(row["uf"]) else None
                 db_mun = DimMunicipio(codigo_ibge=cod, nome=row["municipio_nome"], uf=uf)
                 db.add(db_mun)
                 novos_objetos.append((cod, db_mun, row["municipio_nome"].lower().strip(), uf))
-            else:
-                mun_map_ibge[cod] = db_mun.id_municipio
-                if uf:
-                    mun_map_name[(row["municipio_nome"].lower().strip(), uf)] = db_mun.id_municipio
+                novos_codigos.add(cod)
         db.commit()
 
     if not df_zarc.empty and "cod_municipio_ibge" in df_zarc.columns:
         zarc_muns = (
             df_zarc[["cod_municipio_ibge", "municipio", "uf"]].drop_duplicates().dropna(subset=["cod_municipio_ibge"])
         )
-        for _, row in zarc_muns.iterrows():
+        for row in zarc_muns.to_dict(orient="records"):
             cod = str(row["cod_municipio_ibge"])[:7]
-            if cod in mun_map_ibge:
-                continue
-            db_mun = db.query(DimMunicipio).filter(DimMunicipio.codigo_ibge == cod).first()
-            if not db_mun:
+            if cod not in mun_map_ibge and cod not in novos_codigos:
                 uf = str(row["uf"]).strip().upper() if pd.notna(row["uf"]) else None
                 db_mun = DimMunicipio(codigo_ibge=cod, nome=row["municipio"], uf=uf)
                 db.add(db_mun)
                 novos_objetos.append((cod, db_mun, row["municipio"].lower().strip(), uf))
-            else:
-                mun_map_ibge[cod] = db_mun.id_municipio
+                novos_codigos.add(cod)
         db.commit()
 
     for cod, obj, nome_norm, uf in novos_objetos:
