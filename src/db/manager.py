@@ -282,6 +282,18 @@ class FatoMeteorologia(Base):
     __table_args__ = (UniqueConstraint("id_municipio", "data", name="_meteo_uc"),)
 
 
+class FatoNdviSatelite(Base):
+    __tablename__ = "fato_ndvi_satelite"
+    id_ndvi = Column(Integer, primary_key=True, autoincrement=True)
+    id_municipio = Column(Integer, ForeignKey("dim_municipio.id_municipio"), index=True)
+    ano = Column(Integer, nullable=False, index=True)
+    ndvi_max_safra = Column(Float)
+    ndvi_mean_safra = Column(Float)
+    data_modificacao = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (UniqueConstraint("id_municipio", "ano", name="_ndvi_municipio_ano_uc"),)
+
+
 # Operações: Gerenciamento de Conexão
 
 

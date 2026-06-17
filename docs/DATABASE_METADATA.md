@@ -159,6 +159,15 @@ Dados meteorológicos diários agregados por município.
 - `umidade_media`: Umidade relativa média (%).
 - `estacao_id`: Código da estação INMET de origem.
 
+### `fato_ndvi_satelite` (Fonte: Sensoriamento Remoto / MODIS)
+Dados anuais de índice de vegetação NDVI agregados por município.
+- `id_ndvi` (PK): Identificador único.
+- `id_municipio` (FK): Chave para `dim_municipio`.
+- `ano`: Ano civil correspondente à safra.
+- `ndvi_max_safra`: Valor máximo de NDVI atingido no período crítico.
+- `ndvi_mean_safra`: Valor médio de NDVI no período crítico.
+- `data_modificacao`: Timestamp de auditoria.
+
 ---
 
 ## 🔒 Segurança e Acesso

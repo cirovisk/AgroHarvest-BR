@@ -18,7 +18,7 @@ O objetivo principal é criar um ambiente unificado para análise de dados agro,
 ## 📊 Fontes de Dados
 
 <details>
-<summary>Clique para ver o detalhamento das 8 fontes integradas</summary>
+<summary>Clique para ver o detalhamento das 9 fontes integradas</summary>
 
 1.  **MAPA/SNPC (CultivarWeb):** Registro Nacional de Cultivares (RNC). Fornece dados sobre variedades genéticas certificadas, mantenedores oficiais, portarias de registro e proteção de cultivares.
 2.  **IBGE/SIDRA (PAM):** Produção Agrícola Municipal. Séries anuais consolidadas sobre área plantada, área colhida, quantidade produzida e valor da produção para 60+ culturas temporárias e permanentes.
@@ -28,6 +28,7 @@ O objetivo principal é criar um ambiente unificado para análise de dados agro,
 6.  **MAPA/SIPEAGRO:** Registro de estabelecimentos produtores e importadores de fertilizantes, corretivos e inoculantes, mapeando a infraestrutura de insumos nutricionais.
 7.  **MAPA/SIGEF (Sementes):** Controle e fiscalização da produção de sementes e mudas, garantindo a rastreabilidade e a qualidade da tecnologia genética aplicada no campo.
 8.  **Open-Meteo (Meteorologia):** API global baseada em modelos e satélites que fornece indicadores históricos diários de precipitação e temperatura de forma contínua para todos os 5570 municípios brasileiros.
+9.  **Sensoriamento Remoto (NDVI/Satélite):** Séries temporais do índice de vegetação NDVI municipal durante a safra obtidas via satélite (MODIS), integradas para estimativa de vigor das lavouras.
 
 </details>
 

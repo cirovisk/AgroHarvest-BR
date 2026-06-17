@@ -20,6 +20,7 @@ erDiagram
     DIM-MUNICIPIO ||--o{ FATO-METEOROLOGIA : "clima"
     DIM-MUNICIPIO ||--o{ FATO-FERTILIZANTES : "estabelecimentos"
     DIM-MUNICIPIO ||--o{ FATO-SIGEF : "localização"
+    DIM-MUNICIPIO ||--o{ FATO-NDVI : "satélite"
     
     DIM-MANTENEDOR ||--o{ FATO-CULTIVAR : "mantém"
 
@@ -57,6 +58,12 @@ erDiagram
         datetime data PK
         float precipitacao_mm
         float temp_media_c
+    }
+    FATO-NDVI {
+        int id_municipio FK
+        int ano PK
+        float ndvi_max_safra
+        float ndvi_mean_safra
     }
 ```
 
