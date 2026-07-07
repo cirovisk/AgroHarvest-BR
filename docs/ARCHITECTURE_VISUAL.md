@@ -1,36 +1,36 @@
-# AgroHarvest BR - Arquitetura e Modelagem
+# AgroHarvest BR - Architecture and Modeling
 
-Este documento detalha a estrutura de dados e o fluxo de informações do projeto AgroHarvest BR.
+This document details the data structure and information flow of the AgroHarvest BR project.
 
-## 1. Modelo de Dados (Star Schema)
+## 1. Data Model (Star Schema)
 
-Abaixo está o diagrama Entidade-Relacionamento (ERD) que detalha como as dimensões e fatos se relacionam no PostgreSQL. Este modelo foi desenhado para otimizar consultas analíticas e reduzir a redundância de dados.
+The Entity-Relationship Diagram (ERD) below details how dimensions and facts relate in PostgreSQL. This model was designed to optimize analytical queries and reduce data redundancy.
 
 ```mermaid
 erDiagram
-    DIM-CULTURA ||--o{ FATO-CULTIVAR : "possui"
-    DIM-CULTURA ||--o{ FATO-PAM : "produz"
-    DIM-CULTURA ||--o{ FATO-ZARC : "risco"
-    DIM-CULTURA ||--o{ FATO-CONAB : "estimativa"
-    DIM-CULTURA ||--o{ FATO-AGROFIT : "insuinos"
-    DIM-CULTURA ||--o{ FATO-SIGEF : "sementes"
+    DIM-CULTURA ||--o{ FATO-CULTIVAR : "has"
+    DIM-CULTURA ||--o{ FATO-PAM : "produces"
+    DIM-CULTURA ||--o{ FATO-ZARC : "risk"
+    DIM-CULTURA ||--o{ FATO-CONAB : "estimate"
+    DIM-CULTURA ||--o{ FATO-AGROFIT : "inputs"
+    DIM-CULTURA ||--o{ FATO-SIGEF : "seeds"
     
-    DIM-MUNICIPIO ||--o{ FATO-PAM : "localização"
-    DIM-MUNICIPIO ||--o{ FATO-ZARC : "localização"
-    DIM-MUNICIPIO ||--o{ FATO-METEOROLOGIA : "clima"
-    DIM-MUNICIPIO ||--o{ FATO-FERTILIZANTES : "estabelecimentos"
-    DIM-MUNICIPIO ||--o{ FATO-SIGEF : "localização"
-    DIM-MUNICIPIO ||--o{ FATO-NDVI : "satélite"
+    DIM-MUNICIPIO ||--o{ FATO-PAM : "location"
+    DIM-MUNICIPIO ||--o{ FATO-ZARC : "location"
+    DIM-MUNICIPIO ||--o{ FATO-METEOROLOGIA : "weather"
+    DIM-MUNICIPIO ||--o{ FATO-FERTILIZANTES : "establishments"
+    DIM-MUNICIPIO ||--o{ FATO-SIGEF : "location"
+    DIM-MUNICIPIO ||--o{ FATO-NDVI : "satellite"
     
-    DIM-MANTENEDOR ||--o{ FATO-CULTIVAR : "mantém"
+    DIM-MANTENEDOR ||--o{ FATO-CULTIVAR : "maintains"
 
     DIM-CULTURA {
         int id_cultura PK
-        string nome_padronizado "Ex: soja, milho"
+        string nome_padronizado "Ex: soybean, corn"
     }
     DIM-MUNICIPIO {
         int id_municipio PK
-        string codigo_ibge "7 dígitos"
+        string codigo_ibge "7 digits"
         string nome
         string uf
     }
@@ -67,17 +67,17 @@ erDiagram
     }
 ```
 
-## 2. Fluxo de Dados (Pipeline ETL — Registry Pattern)
+## 2. Data Flow (ETL Pipeline - Registry Pattern)
 
-O pipeline utiliza o **Registry Pattern**: cada fonte de dados é uma classe autocontida (`extract + clean + load`) registrada via decorator `@register`. O orquestrador descobre e executa as fontes automaticamente, sem necessidade de configuração manual.
+The pipeline uses the **Registry Pattern**: each data source is a self-contained class (`extract + clean + load`) registered through the `@register` decorator. The orchestrator discovers and runs sources automatically without manual configuration.
 
 ```mermaid
 graph LR
-    subgraph "Fontes Gov.br"
+    subgraph "Gov.br Sources"
         MAPA["MAPA (ZARC, RNC, SIGEF)"]
         IBGE["IBGE (SIDRA/PAM)"]
-        INMET["INMET (Clima)"]
-        CONAB["CONAB (Safras)"]
+        INMET["INMET (Weather)"]
+        CONAB["CONAB (Crop Seasons)"]
     end
 
     subgraph "Pipeline Engine (Python/Docker)"
@@ -108,29 +108,29 @@ graph LR
     PG --> MB
 ```
 
-### Estrutura de Diretórios
+### Directory Structure
 
 ```
 src/
-├── main.py                     # Orquestrador genérico (~65 linhas)
+├── main.py                     # Generic orchestrator (~65 lines)
 ├── db/
 │   └── manager.py              # ORM Models (Star Schema)
 ├── pipeline/
 │   ├── registry.py             # @register decorator + discovery
-│   ├── base.py                 # Contrato BaseSource (E+C+L)
+│   ├── base.py                 # BaseSource contract (E+C+L)
 │   ├── utils.py                # upsert_data, normalize_string, get_cultura_id
 │   ├── dimensions.py           # DimCultura, DimMunicipio, DimMantenedor
 │   └── sources/
 │       ├── cultivares.py       # SNPC/MAPA
 │       ├── sidra.py            # PAM/IBGE
-│       ├── zarc.py             # Risco Climático (streaming)
-│       ├── conab.py            # Produção + Preços
-│       ├── agrofit.py          # Agrotóxicos
+│       ├── zarc.py             # Climate risk (streaming)
+│       ├── conab.py            # Production + prices
+│       ├── agrofit.py          # Pesticides
 │       ├── fertilizantes.py    # SIPEAGRO
-│       ├── sigef.py            # Sementes
-│       └── inmet.py            # Meteorologia
-└── api/                        # FastAPI (endpoints analíticos)
+│       ├── sigef.py            # Seeds
+│       └── inmet.py            # Weather
+└── api/                        # FastAPI (analytical endpoints)
 ```
 
 ---
-*Diagramas gerados para o portfólio AgroHarvest BR.*
+*Diagrams generated for the AgroHarvest BR portfolio.*

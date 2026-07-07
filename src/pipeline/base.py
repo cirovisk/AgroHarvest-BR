@@ -1,6 +1,6 @@
 """
-Contrato base para todos os pipelines de fonte de dados.
-Cada source DEVE implementar extract(), clean() e load().
+Base contract for all data-source pipelines.
+Each source MUST implement extract(), clean(), and load().
 """
 
 import logging
@@ -10,38 +10,38 @@ from abc import ABC, abstractmethod
 
 
 class BaseSource(ABC):
-    """Interface que toda fonte de dados deve seguir."""
+    """Interface every data source must follow."""
 
     def __init__(self):
         self.log = logging.getLogger(self.__class__.__name__)
 
     @abstractmethod
     def extract(self, **kwargs):
-        """Extrai dados brutos da fonte. Retorna DataFrame, dict, ou generator."""
+        """Extract raw data from the source. Returns a DataFrame, dict, or generator."""
         ...
 
     @abstractmethod
     def clean(self, raw_data):
-        """Limpa e padroniza os dados brutos."""
+        """Clean and standardize raw data."""
         ...
 
     @abstractmethod
     def load(self, clean_data, lookups: dict):
-        """Carrega dados limpos no banco via upsert."""
+        """Load clean data into the database through upsert."""
         ...
 
     def run(self, lookups: dict, **kwargs) -> str:
-        """Executa o pipeline completo: extract → clean → load."""
-        self.log.info("Iniciando pipeline...")
+        """Run the full pipeline: extract -> clean -> load."""
+        self.log.info("Starting pipeline...")
         raw = self.extract(**kwargs)
         clean = self.clean(raw)
         result = self.load(clean, lookups)
-        self.log.info(f"Pipeline concluído: {result}")
+        self.log.info(f"Pipeline completed: {result}")
         return result
 
     def is_file_stale(self, path: str, threshold_days: int = 30) -> bool:
         """
-        Verifica se um arquivo local está desatualizado baseado na sua idade.
+        Check whether a local file is stale based on its age.
         """
         if not os.path.exists(path):
             return True

@@ -7,14 +7,14 @@ from src.db.manager import (
 )
 
 def test_insertion_fato_cultivar(db_session):
-    """Verifica se os campos do DataFrame são mapeados corretamente para FatoCultivar."""
+    """Verify that DataFrame fields are mapped correctly to FatoCultivar."""
     # Setup dims
     cult = DimCultura(nome_padronizado="soja")
     mant = DimMantenedor(nome="EMBRAPA", setor="Público")
     db_session.add_all([cult, mant])
     db_session.commit()
     
-    # Simulação de DataFrame vindo do transform
+    # Simulate a DataFrame coming from transform
     data = [{
         "nr_registro": 1001,
         "id_cultura": cult.id_cultura,
@@ -24,7 +24,7 @@ def test_insertion_fato_cultivar(db_session):
         "data_reg": pd.to_datetime("2020-01-01")
     }]
     
-    # Simulação de inserção manual (equivalente ao que o upsert faria)
+    # Simulate manual insertion, equivalent to what upsert would do
     fato = FatoCultivar(**data[0])
     db_session.add(fato)
     db_session.commit()
@@ -34,7 +34,7 @@ def test_insertion_fato_cultivar(db_session):
     assert res.id_cultura == cult.id_cultura
 
 def test_insertion_fato_pam(db_session):
-    """Verifica inserção dos dados do IBGE/SIDRA."""
+    """Verify insertion of IBGE/SIDRA data."""
     cult = DimCultura(nome_padronizado="milho")
     mun = DimMunicipio(codigo_ibge="1200013", nome="Mun A", uf="AC")
     db_session.add_all([cult, mun])
@@ -56,7 +56,7 @@ def test_insertion_fato_pam(db_session):
     assert res.qtde_produzida_ton == 1500.0
 
 def test_insertion_fato_zarc(db_session):
-    """Verifica inserção dos dados de risco climático (ZARC)."""
+    """Verify insertion of climate risk data (ZARC)."""
     cult = DimCultura(nome_padronizado="soja")
     mun = DimMunicipio(codigo_ibge="1200013", nome="Mun A", uf="AC")
     db_session.add_all([cult, mun])
@@ -78,7 +78,7 @@ def test_insertion_fato_zarc(db_session):
     assert res.risco_climatico == "20%"
 
 def test_insertion_fato_conab(db_session):
-    """Verifica inserção dos dados de produção da CONAB."""
+    """Verify insertion of CONAB production data."""
     cult = DimCultura(nome_padronizado="trigo")
     db_session.add(cult)
     db_session.commit()
@@ -101,7 +101,7 @@ def test_insertion_fato_conab(db_session):
     assert res.producao_mil_t == 30.0
 
 def test_insertion_fato_agrofit(db_session):
-    """Verifica inserção dos dados de defensivos (Agrofit)."""
+    """Verify insertion of crop protection product data (Agrofit)."""
     cult = DimCultura(nome_padronizado="algodão")
     db_session.add(cult)
     db_session.commit()
@@ -122,7 +122,7 @@ def test_insertion_fato_agrofit(db_session):
     assert res.marca_comercial == "AGRO-X"
 
 def test_insertion_fato_precos(db_session):
-    """Verifica inserção dos dados de preços (CONAB)."""
+    """Verify insertion of price data (CONAB)."""
     cult = DimCultura(nome_padronizado="soja")
     db_session.add(cult)
     db_session.commit()

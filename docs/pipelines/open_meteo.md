@@ -1,25 +1,25 @@
-# Pipeline: Open-Meteo (Meteorologia)
+# Pipeline: Open-Meteo (Weather)
 
-Extração e consolidação de dados climáticos e meteorológicos históricos. Anteriormente este pipeline utilizava o INMET, mas foi substituído devido à instabilidade e quedas frequentes dos servidores da agência.
+Extraction and consolidation of historical climate and weather data. This pipeline previously used INMET, but it was replaced because the agency servers were unstable and frequently unavailable.
 
-## 📌 Fonte de Dados
-- **Agência:** Open-Meteo (API Global de Dados Meteorológicos Abertos)
-- **Origem:** [Open-Meteo Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api)
-- **Latência:** D-2 (Dados consolidados com 2 dias de defasagem).
+## 📌 Data Source
+- **Agency:** Open-Meteo (global open weather data API)
+- **Origin:** [Open-Meteo Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api)
+- **Latency:** D-2 (data consolidated with a two-day delay).
 
-## 🛠️ Processo de Extração
-1. **Coordenadas:** O pipeline primeiro cruza a lista oficial de municípios (IBGE) com uma base open-source do GitHub contendo Latitude e Longitude de todos os 5570 municípios do Brasil.
-2. **Workers Paralelos:** Para acelerar a ingestão dos dados diários, utilizamos o `ThreadPoolExecutor` para requisições paralelas e simultâneas.
-3. **Limite Diário:** Embora gratuito, a API limita em 10.000 chamadas diárias. O pipeline é configurável para fatiar requisições.
+## 🛠️ Extraction Process
+1. **Coordinates:** The pipeline first joins the official municipality list (IBGE) with an open-source GitHub dataset containing latitude and longitude for all 5,570 Brazilian municipalities.
+2. **Parallel Workers:** To speed up daily data ingestion, it uses `ThreadPoolExecutor` for parallel and simultaneous requests.
+3. **Daily Limit:** Although free, the API is limited to 10,000 daily calls. The pipeline can be configured to slice requests.
 
-## 💾 Armazenamento (Star Schema)
-- **Fato:** `fato_meteorologia`.
-- **Relacionamentos:** Chaves estrangeiras para `dim_municipio`.
+## 💾 Storage (Star Schema)
+- **Fact:** `fato_meteorologia`.
+- **Relationships:** Foreign keys to `dim_municipio`.
 
-## 🔄 Indicadores Extraídos
-- **Precipitação Total (mm)**
-- **Temperatura Máxima (°C)**
-- **Temperatura Mínima (°C)**
-- **Temperatura Média (°C)**
+## 🔄 Extracted Indicators
+- **Total precipitation (mm)**
+- **Maximum temperature (°C)**
+- **Minimum temperature (°C)**
+- **Average temperature (°C)**
 
-*Nota: Ao contrário de estações INMET físicas, a API de satélites e modelos globais (Open-Meteo) fornece cobertura contínua e ininterrupta para todos os municípios, mesmo aqueles sem estações meteorológicas.*
+*Note: Unlike physical INMET stations, the satellite and global model API (Open-Meteo) provides continuous and uninterrupted coverage for every municipality, including those without weather stations.*

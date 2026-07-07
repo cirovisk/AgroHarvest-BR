@@ -20,10 +20,10 @@ from sqlalchemy.sql import func
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
 
-# Configuração: Credenciais via variáveis de ambiente
+# Configuration: credentials through environment variables
 load_dotenv()
 
-# Permite forçar SQLite para testes rápidos
+# Allow forcing SQLite for fast tests
 USE_SQLITE = os.getenv("USE_SQLITE", "false").lower() == "true"
 
 if USE_SQLITE:
@@ -45,7 +45,7 @@ else:
             "precisam estar definidas para conexão PostgreSQL!"
         )
 
-# Permite forçar SQLite para testes rápidos
+# Allow forcing SQLite for fast tests
 if os.getenv("USE_SQLITE", "false").lower() == "true":
     DATABASE_URL = "sqlite:///:memory:"
     engine = create_engine(DATABASE_URL, echo=False)
@@ -294,11 +294,11 @@ class FatoNdviSatelite(Base):
     __table_args__ = (UniqueConstraint("id_municipio", "ano", name="_ndvi_municipio_ano_uc"),)
 
 
-# Operações: Gerenciamento de Conexão
+# Operations: Connection Management
 
 
 def init_db():
-    """DDL: Sincronização de tabelas com o banco."""
+    """DDL: synchronize tables with the database."""
     log.info("Inicializando/Verificando banco de dados PostgreSQL...")
     try:
         Base.metadata.create_all(bind=engine)
@@ -309,7 +309,7 @@ def init_db():
 
 
 def get_db():
-    """Session: Generator de conexão SQLAlchemy."""
+    """Session: SQLAlchemy connection generator."""
     db = SessionLocal()
     try:
         yield db

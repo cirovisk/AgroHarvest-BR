@@ -1,27 +1,27 @@
-# Pipeline: CONAB (Séries de Preços e Produção)
+# Pipeline: CONAB (Price and Production Series)
 
-Extração de indicadores de mercado e estimativas de safra da Companhia Nacional de Abastecimento.
+Extraction of market indicators and crop forecast estimates from the National Supply Company.
 
-## 📌 Fonte de Dados
-- **Portal de Dados:** [CONAB - Dados Abertos](https://www.conab.gov.br/)
+## 📌 Data Source
+- **Data Portal:** [CONAB - Open Data](https://www.conab.gov.br/)
 - **Datasets:**
-    - Séries Históricas de Preços (Mensais e Semanais).
-    - Levantamentos de Safra (Produção e Produtividade).
+    - Historical price series (monthly and weekly).
+    - Crop surveys (production and yield).
 
-## 🛠️ Processo de Extração
-1.  **Download de Planilhas/ZIPs:** A CONAB disponibiliza muitos dados em arquivos `.xlsx` ou compactados. O pipeline faz o download direto dessas fontes.
-2.  **Séries de Preços:** Captura de preços médios ao nível de UF ou praça de comercialização.
-3.  **Levantamentos de Safra:** Extração de área plantada (mil ha), produção (mil t) e produtividade (t/ha).
+## 🛠️ Extraction Process
+1.  **Spreadsheet/ZIP Download:** CONAB publishes many datasets as `.xlsx` or compressed files. The pipeline downloads those sources directly.
+2.  **Price Series:** Captures average prices at state or trading-center level.
+3.  **Crop Surveys:** Extracts planted area (thousand ha), production (thousand t), and yield (t/ha).
 
-## 🔄 Transformações (Cleaners)
-Lógica centralizada em `src/pipeline/cleaners/conab.py`:
-- **Normalização de Unidades:** Conversão de mil hectares/toneladas para unidades base (ha/t).
-- **Tratamento de Strings:** Remoção de espaços e normalização de UFs.
-- **Hierarquia Temporal:** Mapeamento de "Ano Agrícola" (ex: 2023/24) para o ano de início da safra.
-- **Cultura Match:** Vínculo via `normalize_culture_name`.
+## 🔄 Transformations (Cleaners)
+Centralized logic in `src/pipeline/cleaners/conab.py`:
+- **Unit Normalization:** Converts thousand hectares/tons to base units (ha/t).
+- **String Handling:** Removes whitespace and normalizes state abbreviations.
+- **Temporal Hierarchy:** Maps "crop year" values (for example, 2023/24) to the harvest start year.
+- **Crop Match:** Links records through `normalize_culture_name`.
 
-## 💾 Armazenamento
-Os dados são carrgados em três tabelas factuais:
-- `fato_producao_conab`: Dados macro de safra e produtividade.
-- `fato_precos_conab_mensal`: Séries históricas mensais de preços por KG.
-- `fato_precos_conab_semanal`: Monitoramento de curto prazo de preços.
+## 💾 Storage
+The data is loaded into three fact tables:
+- `fato_producao_conab`: Macro crop and yield data.
+- `fato_precos_conab_mensal`: Monthly historical price series per kg.
+- `fato_precos_conab_semanal`: Short-term price monitoring.

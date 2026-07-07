@@ -1,70 +1,97 @@
-from fastapi.testclient import TestClient
+import pytest
+from httpx import ASGITransport, AsyncClient
+
 from api.main import app
 
-client = TestClient(app)
+pytestmark = pytest.mark.anyio
 
-def test_health_check():
-    response = client.get("/")
+
+@pytest.fixture
+def anyio_backend():
+    return "asyncio"
+
+
+@pytest.fixture
+async def client():
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://testserver",
+        follow_redirects=True,
+    ) as async_client:
+        yield async_client
+
+
+async def test_health_check(client):
+    response = await client.get("/")
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
 
-def test_culturas_list():
-    response = client.get("/culturas")
+
+async def test_culturas_list(client):
+    response = await client.get("/culturas")
     assert response.status_code == 200
     assert "items" in response.json()
     assert isinstance(response.json()["items"], list)
 
-def test_municipios_list():
-    response = client.get("/municipios")
+
+async def test_municipios_list(client):
+    response = await client.get("/municipios")
     assert response.status_code == 200
     assert "items" in response.json()
     assert isinstance(response.json()["items"], list)
 
-def test_producao_pam():
-    response = client.get("/producao/pam")
+
+async def test_producao_pam(client):
+    response = await client.get("/producao/pam")
     assert response.status_code == 200
     assert "items" in response.json()
     assert isinstance(response.json()["items"], list)
 
-def test_insumos_agrofit():
-    response = client.get("/insumos/agrofit")
+
+async def test_insumos_agrofit(client):
+    response = await client.get("/insumos/agrofit")
     assert response.status_code == 200
     assert "items" in response.json()
     assert isinstance(response.json()["items"], list)
 
-def test_clima_list():
-    response = client.get("/clima")
+
+async def test_clima_list(client):
+    response = await client.get("/clima")
     assert response.status_code == 200
     assert "items" in response.json()
     assert isinstance(response.json()["items"], list)
 
 # ======================================
 # Testes dos Endpoints Analytics
-# Endpoints compostos retornam 404 quando não existem dados (banco vazio em testes).
-# O teste valida que a rota existe e o schema de erro é correto (404, não 500).
+# Composite endpoints return 404 when there is no data (empty test database).
+# This test validates that the route exists and the error schema is correct (404, not 500).
 # ======================================
 
-def test_analytics_raio_x_municipio_nao_encontrado():
+async def test_analytics_raio_x_municipio_nao_encontrado(client):
     """Com banco vazio de testes, deve retornar 404 para municipio inexistente."""
-    response = client.get("/analytics/raio-x-municipal?codigo_ibge=9999999&cultura=soja&ano=2022")
+    response = await client.get("/analytics/raio-x-municipal?codigo_ibge=9999999&cultura=soja&ano=2022")
     assert response.status_code == 404
 
-def test_analytics_dossie_insumos_nao_encontrado():
+
+async def test_analytics_dossie_insumos_nao_encontrado(client):
     """Com banco vazio, cultura inexistente deve retornar 404."""
-    response = client.get("/analytics/dossie-insumos/cultura_inexistente")
+    response = await client.get("/analytics/dossie-insumos/cultura_inexistente")
     assert response.status_code == 404
 
-def test_analytics_viabilidade_economica_nao_encontrado():
+
+async def test_analytics_viabilidade_economica_nao_encontrado(client):
     """Com banco vazio, cultura inexistente deve retornar 404."""
-    response = client.get("/analytics/viabilidade-economica?cultura=cultura_x&uf=SP&ano=2022")
+    response = await client.get("/analytics/viabilidade-economica?cultura=cultura_x&uf=SP&ano=2022")
     assert response.status_code == 404
 
-def test_analytics_janela_aplicacao_nao_encontrado():
+
+async def test_analytics_janela_aplicacao_nao_encontrado(client):
     """Com banco vazio, municipio inexistente deve retornar 404."""
-    response = client.get("/analytics/janela-aplicacao?codigo_ibge=9999999&ano=2022&mes=3")
+    response = await client.get("/analytics/janela-aplicacao?codigo_ibge=9999999&ano=2022&mes=3")
     assert response.status_code == 404
 
-def test_analytics_auditoria_estimativas_nao_encontrado():
-    """Com banco vazio, cultura inexistente deve retornar 404 (lista vazia não, 404 por cultura)."""
-    response = client.get("/analytics/auditoria-estimativas?cultura=cultura_x")
+
+async def test_analytics_auditoria_estimativas_nao_encontrado(client):
+    """With an empty database, an unknown crop should return 404, not an empty list."""
+    response = await client.get("/analytics/auditoria-estimativas?cultura=cultura_x")
     assert response.status_code == 404

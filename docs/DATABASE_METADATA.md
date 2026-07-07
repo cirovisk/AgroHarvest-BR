@@ -1,196 +1,196 @@
-# Metadados do Banco de Dados - AgroHarvest BR
+# Database Metadata - AgroHarvest BR
 
-Este documento descreve a estrutura do banco de Dados PostgreSQL utilizado no projeto **AgroHarvest BR**, seguindo uma modelagem **Star Schema** (Modelo Estrela).
+This document describes the PostgreSQL database structure used by **AgroHarvest BR**, following a **Star Schema** model.
 
-## 🏗️ Arquitetura de Dados
+## 🏗️ Data Architecture
 
-O banco de dados é composto por 3 tabelas de Dimensão e 11 tabelas de Fato, permitindo análises granulares por cultura, município e tempo.
+The database is composed of three dimension tables and eleven fact tables, enabling granular analysis by crop, municipality, and time.
 
 ---
 
-## 📐 Dimensões
+## 📐 Dimensions
 
 ### `dim_cultura`
-Armazena os nomes padronizados das culturas para garantir a integridade referencial entre diferentes fontes (SIDRA, CONAB, ZARC, Agrofit).
-- `id_cultura` (PK): Identificador único.
-- `nome_padronizado` (Unique): Nome da cultura em snake_case (ex: `soja`, `milho`).
+Stores standardized crop names to guarantee referential integrity across different sources (SIDRA, CONAB, ZARC, Agrofit).
+- `id_cultura` (PK): Unique identifier.
+- `nome_padronizado` (Unique): Crop name in snake_case (for example, `soja`, `milho`).
 
 ### `dim_municipio`
-Armazena informações geográficas baseadas no código IBGE.
-- `id_municipio` (PK): Identificador único.
-- `codigo_ibge` (Unique): Código de 7 dígitos do IBGE.
-- `nome`: Nome do município.
-- `uf`: Sigla da Unidade Federativa.
+Stores geographic information based on the IBGE code.
+- `id_municipio` (PK): Unique identifier.
+- `codigo_ibge` (Unique): Seven-digit IBGE code.
+- `nome`: Municipality name.
+- `uf`: State abbreviation.
 
 ### `dim_mantenedor`
-Cadastro de empresas ou instituições responsáveis pelo registro da cultivar.
-- `id_mantenedor` (PK): Identificador único.
-- `nome` (Unique): Razão social ou nome do requerente.
-- `setor`: Classificação do mantenedor (Público, Privado ou Misto).
+Registry of companies or institutions responsible for cultivar registration.
+- `id_mantenedor` (PK): Unique identifier.
+- `nome` (Unique): Legal name or applicant name.
+- `setor`: Maintainer classification (public, private, or mixed).
 
 ---
 
-## 📊 Fatos
+## 📊 Facts
 
 ### `fato_registro_cultivares` (Fonte: MAPA/SNPC)
-Registros oficiais de cultivares no Registro Nacional de Cultivares (RNC).
-- `nr_registro` (PK): Número do registro no MAPA.
-- `id_cultura` (FK): Chave para `dim_cultura`.
-- `id_mantenedor` (FK): Chave para `dim_mantenedor`.
-- `cultivar`: Nome comercial da cultivar.
-- `nome_secundario`: Nome alternativo/apelido.
-- `situacao`: Status do registro (Ex: REGISTRADA).
-- `nr_formulario`: Número do formulário de submissão.
-- `data_reg`: Data do registro oficial.
-- `data_val`: Data de validade do registro.
+Official cultivar records in the National Cultivar Registry (RNC).
+- `nr_registro` (PK): MAPA registration number.
+- `id_cultura` (FK): Key to `dim_cultura`.
+- `id_mantenedor` (FK): Key to `dim_mantenedor`.
+- `cultivar`: Commercial cultivar name.
+- `nome_secundario`: Alternative name or alias.
+- `situacao`: Registration status (for example, REGISTRADA).
+- `nr_formulario`: Submission form number.
+- `data_reg`: Official registration date.
+- `data_val`: Registration expiration date.
 
 ### `fato_producao_pam` (Fonte: IBGE/SIDRA)
-Série histórica da Produção Agrícola Municipal.
-- `id_producao` (PK): Identificador único.
-- `id_cultura` (FK): Chave para `dim_cultura`.
-- `id_municipio` (FK): Chave para `dim_municipio`.
-- `ano`: Ano de referência.
-- `area_plantada_ha`: Área plantada em hectares.
-- `area_colhida_ha`: Área colhida em hectares.
-- `qtde_produzida_ton`: Produção total em toneladas.
-- `valor_producao_mil_reais`: Valor da produção em mil reais.
+Historical series for Municipal Agricultural Production.
+- `id_producao` (PK): Unique identifier.
+- `id_cultura` (FK): Key to `dim_cultura`.
+- `id_municipio` (FK): Key to `dim_municipio`.
+- `ano`: Reference year.
+- `area_plantada_ha`: Planted area in hectares.
+- `area_colhida_ha`: Harvested area in hectares.
+- `qtde_produzida_ton`: Total production in tons.
+- `valor_producao_mil_reais`: Production value in thousand BRL.
 
 ### `fato_risco_zarc` (Fonte: MAPA/ZARC)
-Zoneamento de Risco Climático por município e solo.
-- `id_zarc` (PK): Identificador único.
-- `id_cultura` (FK): Chave para `dim_cultura`.
-- `id_municipio` (FK): Chave para `dim_municipio`.
-- `tipo_solo`: Classificação do solo (Tipo 1, 2 ou 3).
-- `periodo_plantio`: Decêndio/Período recomendado.
-- `risco_climatico`: Percentual de risco (20%, 30%, 40%).
-- `data_modificacao`: Timestamp de auditoria.
+Climate Risk Zoning by municipality and soil.
+- `id_zarc` (PK): Unique identifier.
+- `id_cultura` (FK): Key to `dim_cultura`.
+- `id_municipio` (FK): Key to `dim_municipio`.
+- `tipo_solo`: Soil classification (type 1, 2, or 3).
+- `periodo_plantio`: Recommended ten-day period/window.
+- `risco_climatico`: Risk percentage (20%, 30%, 40%).
+- `data_modificacao`: Audit timestamp.
 
 ### `fato_producao_conab` (Fonte: CONAB)
-Estimativas e histórico de produção por UF e Safra.
-- `id_conab` (PK): Identificador único.
-- `id_cultura` (FK): Chave para `dim_cultura`.
-- `uf`: UF de referência.
-- `ano_agricola`: Ciclo (ex: 2023/24).
-- `safra`: Identificação da safra (1ª, 2ª ou 3ª).
-- `area_plantada_mil_ha`: Área em mil hectares.
-- `producao_mil_t`: Produção em mil toneladas.
-- `produtividade_t_ha`: Rendimento médio (ton/ha).
+Production estimates and history by state and crop season.
+- `id_conab` (PK): Unique identifier.
+- `id_cultura` (FK): Key to `dim_cultura`.
+- `uf`: Reference state.
+- `ano_agricola`: Cycle (for example, 2023/24).
+- `safra`: Crop-season identifier (1st, 2nd, or 3rd).
+- `area_plantada_mil_ha`: Area in thousand hectares.
+- `producao_mil_t`: Production in thousand tons.
+- `produtividade_t_ha`: Average yield (ton/ha).
 
 ### `fato_precos_conab_mensal` (Fonte: CONAB)
-Série de preços médios mensais recebidos pelos produtores.
-- `id_preco` (PK): Identificador único.
-- `id_cultura` (FK): Chave para `dim_cultura`.
-- `id_municipio` (FK): Chave opcional para `dim_municipio`.
-- `uf`: UF de referência.
-- `ano`: Ano civil.
-- `mes`: Mês (1 a 12).
-- `valor_kg`: Valor pago ao produtor por KG.
-- `nivel_comercializacao`: Nível da transação (ex: Produtor).
+Monthly average price series received by producers.
+- `id_preco` (PK): Unique identifier.
+- `id_cultura` (FK): Key to `dim_cultura`.
+- `id_municipio` (FK): Optional key to `dim_municipio`.
+- `uf`: Reference state.
+- `ano`: Calendar year.
+- `mes`: Month (1 to 12).
+- `valor_kg`: Amount paid to the producer per kg.
+- `nivel_comercializacao`: Transaction level (for example, producer).
 
 ### `fato_precos_conab_semanal` (Fonte: CONAB)
-Dados de preços com granularidade semanal.
-- `semana`: Número da semana no ano.
-- `data_referencia`: Período da semana (Início/Fim).
-- (Demais campos idênticos ao mensal)
+Price data with weekly granularity.
+- `semana`: Week number in the year.
+- `data_referencia`: Week period (start/end).
+- Other fields are identical to the monthly table.
 
 ### `fato_agrofit` (Fonte: MAPA/Agrofit)
-Relacionamento entre culturas e agrotóxicos/defensivos registrados.
-- `id_agrofit` (PK): Identificador único.
-- `id_cultura` (FK): Chave para `dim_cultura`.
-- `nr_registro`: Registro do produto no MAPA.
-- `marca_comercial`: Nome comercial do defensivo.
-- `ingrediente_ativo`: Princípio ativo.
-- `titular_registro`: Empresa detentora do registro.
-- `classe`: Classificação (Herbicida, Inseticida, etc).
-- `praga_comum`: Nome comum da praga/alvo biológico.
+Relationship between crops and registered pesticides/crop protection products.
+- `id_agrofit` (PK): Unique identifier.
+- `id_cultura` (FK): Key to `dim_cultura`.
+- `nr_registro`: Product registration in MAPA.
+- `marca_comercial`: Commercial name of the crop protection product.
+- `ingrediente_ativo`: Active ingredient.
+- `titular_registro`: Company holding the registration.
+- `classe`: Classification (herbicide, insecticide, and so on).
+- `praga_comum`: Common name of the pest/biological target.
 
 ### `fato_fertilizantes_estabelecimentos` (Fonte: MAPA/SIPEAGRO)
-Cadastro de estabelecimentos produtores, importadores e comerciantes de fertilizantes.
-- `id_fertilizante` (PK): Identificador único.
-- `id_municipio` (FK): Chave para `dim_municipio` (via mapeamento de nome/UF).
-- `uf`: UF do estabelecimento.
-- `municipio`: Nome do município original.
-- `nr_registro_estabelecimento` (Unique): Número de registro no SIPEAGRO.
-- `status_registro`: Situação (Ativo, Cancelado, etc).
-- `cnpj`: CNPJ do estabelecimento.
-- `razao_social`: Razão social da empresa.
-- `nome_fantasia`: Nome fantasia.
-- `area_atuacao`: Área (ex: FERTILIZANTE, INOCULANTE).
-- `atividade`: Atividade (ex: PRODUTOR, IMPORTADOR).
-- `classificacao`: Detalhamento da classificação do estabelecimento.
+Registry of fertilizer producers, importers, and traders.
+- `id_fertilizante` (PK): Unique identifier.
+- `id_municipio` (FK): Key to `dim_municipio` through name/state mapping.
+- `uf`: Establishment state.
+- `municipio`: Original municipality name.
+- `nr_registro_estabelecimento` (Unique): SIPEAGRO registration number.
+- `status_registro`: Status (active, canceled, and so on).
+- `cnpj`: Establishment CNPJ.
+- `razao_social`: Company legal name.
+- `nome_fantasia`: Trade name.
+- `area_atuacao`: Area (for example, FERTILIZANTE, INOCULANTE).
+- `atividade`: Activity (for example, PRODUTOR, IMPORTADOR).
+- `classificacao`: Detailed establishment classification.
  
 ### `fato_sigef_producao` (Fonte: MAPA/SIGEF)
-Controle da produção comercial de sementes e mudas.
-- `id_sigef_producao` (PK): Identificador único.
-- `id_cultura` (FK): Chave para `dim_cultura`.
-- `id_municipio` (FK): Chave para `dim_municipio`.
-- `safra`: Ciclo de produção (ex: 2023/2023).
-- `especie`: Nome da espécie original.
-- `cultivar_raw`: Nome da cultivar original.
-- `categoria`: Categoria da semente (C1, C2, S1, S2, etc).
-- `status`: Situação do campo de produção.
-- `data_plantio`: Data de plantio do campo.
-- `data_colheita`: Data de colheita.
-- `area_ha`: Área do campo em hectares.
-- `producao_bruta_t`: Volume colhido bruto (ton).
-- `producao_est_t`: Estimativa de produção (ton).
+Commercial seed and seedling production control.
+- `id_sigef_producao` (PK): Unique identifier.
+- `id_cultura` (FK): Key to `dim_cultura`.
+- `id_municipio` (FK): Key to `dim_municipio`.
+- `safra`: Production cycle (for example, 2023/2023).
+- `especie`: Original species name.
+- `cultivar_raw`: Original cultivar name.
+- `categoria`: Seed category (C1, C2, S1, S2, and so on).
+- `status`: Production field status.
+- `data_plantio`: Field planting date.
+- `data_colheita`: Harvest date.
+- `area_ha`: Field area in hectares.
+- `producao_bruta_t`: Gross harvested volume (tons).
+- `producao_est_t`: Production estimate (tons).
  
 ### `fato_sigef_uso_proprio` (Fonte: MAPA/SIGEF)
-Declarações de reserva de sementes para uso próprio do produtor.
-- `id_sigef_uso_proprio` (PK): Identificador único.
-- `id_cultura` (FK): Chave para `dim_cultura`.
-- `id_municipio` (FK): Chave para `dim_municipio`.
-- `periodo`: Ano/Safra da declaração.
-- `tipo_periodo`: Granularidade do período (ex: ANO).
-- `cultivar_raw`: Cultivar reservada.
-- `area_total_ha`: Área total declarada.
-- `area_plantada_ha`: Área efetivamente plantada.
-- `area_estimada_ha`: Área estimada de produção.
+Seed reserve declarations for producers' own use.
+- `id_sigef_uso_proprio` (PK): Unique identifier.
+- `id_cultura` (FK): Key to `dim_cultura`.
+- `id_municipio` (FK): Key to `dim_municipio`.
+- `periodo`: Declaration year/crop season.
+- `tipo_periodo`: Period granularity (for example, ANO).
+- `cultivar_raw`: Reserved cultivar.
+- `area_total_ha`: Total declared area.
+- `area_plantada_ha`: Actually planted area.
+- `area_estimada_ha`: Estimated production area.
  
 ### `fato_meteorologia` (Fonte: INMET)
-Dados meteorológicos diários agregados por município.
-- `id_meteo` (PK): Identificador único.
-- `id_municipio` (FK): Chave para `dim_municipio`.
-- `data`: Data de referência.
-- `precipitacao_total_mm`: Chuva acumulada no dia.
-- `temp_max_c`: Temperatura máxima atingida.
-- `temp_min_c`: Temperatura mínima atingida.
-- `temp_media_c`: Temperatura média aritmética do dia.
-- `umidade_media`: Umidade relativa média (%).
-- `estacao_id`: Código da estação INMET de origem.
+Daily weather data aggregated by municipality.
+- `id_meteo` (PK): Unique identifier.
+- `id_municipio` (FK): Key to `dim_municipio`.
+- `data`: Reference date.
+- `precipitacao_total_mm`: Accumulated rainfall for the day.
+- `temp_max_c`: Maximum observed temperature.
+- `temp_min_c`: Minimum observed temperature.
+- `temp_media_c`: Arithmetic average temperature for the day.
+- `umidade_media`: Average relative humidity (%).
+- `estacao_id`: Source INMET station code.
 
 ### `fato_ndvi_satelite` (Fonte: Sensoriamento Remoto / MODIS)
-Dados anuais de índice de vegetação NDVI agregados por município.
-- `id_ndvi` (PK): Identificador único.
-- `id_municipio` (FK): Chave para `dim_municipio`.
-- `ano`: Ano civil correspondente à safra.
-- `ndvi_max_safra`: Valor máximo de NDVI atingido no período crítico.
-- `ndvi_mean_safra`: Valor médio de NDVI no período crítico.
-- `data_modificacao`: Timestamp de auditoria.
+Annual NDVI vegetation index data aggregated by municipality.
+- `id_ndvi` (PK): Unique identifier.
+- `id_municipio` (FK): Key to `dim_municipio`.
+- `ano`: Calendar year corresponding to the crop season.
+- `ndvi_max_safra`: Maximum NDVI value reached during the critical period.
+- `ndvi_mean_safra`: Average NDVI value during the critical period.
+- `data_modificacao`: Audit timestamp.
 
 ---
 
-## 🔒 Segurança e Acesso
+## 🔒 Security and Access
 
-O banco de dados segue o princípio do privilégio mínimo para a camada de exposição:
+The database follows the least-privilege principle for the exposure layer:
 
-1.  **Usuário de Aplicação (`postgres`):** Possui permissão de `OWNER`, utilizado exclusivamente pelo pipeline de ETL para criar tabelas e realizar `UPSERT`.
-2.  **Usuário de API (`api_reader`):** Possui permissão restrita de `SELECT` em todas as tabelas. 
-    - Toda a comunicação da API FastAPI é feita via este usuário.
-    - Script de configuração: `docs/setup_api_reader.sql`.
+1.  **Application User (`postgres`):** Has `OWNER` permissions and is used exclusively by the ETL pipeline to create tables and perform `UPSERT`.
+2.  **API User (`api_reader`):** Has restricted `SELECT` permissions on all tables.
+    - All FastAPI communication uses this user.
+    - Setup script: `docs/setup_api_reader.sql`.
 
-## 🔄 Auditoria e Metadados Técnicos
+## 🔄 Auditing and Technical Metadata
 
-Todas as tabelas de Fato possuem o campo:
-- `data_modificacao`: Timestamp da última inserção ou atualização (UPSERT), facilitando cargas incrementais e auditoria de frescor dos dados.
+All fact tables include the following field:
+- `data_modificacao`: Timestamp of the latest insert or update (UPSERT), supporting incremental loads and data freshness auditing.
 
 ---
 
-## 🔗 Referências de Metadados Oficiais
+## 🔗 Official Metadata References
 
-Se precisar consultar a metodologia original de cada fonte:
+If you need to consult the original methodology for each source:
 
-- **IBGE (PAM):** [Metodologia e Conceitos - SIDRA](https://www.ibge.gov.br/estatisticas/economicas/agricultura-e-pecuaria/9117-producao-agricola-municipal-culturas-temporarias-e-permanentes.html?=&t=o-que-e)
+- **IBGE (PAM):** [Methodology and Concepts - SIDRA](https://www.ibge.gov.br/estatisticas/economicas/agricultura-e-pecuaria/9117-producao-agricola-municipal-culturas-temporarias-e-permanentes.html?=&t=o-que-e)
 - **MAPA (ZARC):** [Manual de Indicadores e Metodologia ZARC](https://www.gov.br/agricultura/pt-br/assuntos/riscos-seguro/programa-nacional-de-zoneamento-agricola-de-risco-climatico)
-- **CONAB (Preços e Safras):** [Metodologia de Levantamento de Safras](https://www.conab.gov.br/info-agro/safras/metodologia)
-- **MAPA (Agrofit):** [Consulta de Insumos e Defensivos](https://agrofit.agricultura.gov.br/agrofit_cons/principal_agrofit_cons)
+- **CONAB (Prices and Crop Seasons):** [Crop Survey Methodology](https://www.conab.gov.br/info-agro/safras/metodologia)
+- **MAPA (Agrofit):** [Input and Crop Protection Product Search](https://agrofit.agricultura.gov.br/agrofit_cons/principal_agrofit_cons)

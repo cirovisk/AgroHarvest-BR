@@ -1,6 +1,6 @@
 """
 Pipeline Alert Manager (PostgreSQL).
-Salva status JSON de execução em data/logs/.
+Saves execution status JSON files in data/logs/.
 """
 
 import json
@@ -14,14 +14,14 @@ log = logging.getLogger(__name__)
 
 
 class AlertManager:
-    """Coleta métricas de execução e persiste JSON de status."""
+    """Collect execution metrics and persist status JSON."""
 
     def __init__(self, pipeline_name: str = "AgroHarvest BR (PostgreSQL)"):
         self.pipeline_name = pipeline_name
         self.errors: list[dict] = []
         self.warnings: list[str] = []
         self.started_at: float = time.monotonic()
-        # ISO timestamp formatado UTC seguro para sistema de arquivos
+        # Filesystem-safe UTC ISO timestamp
         self.start_ts: str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
         self._log_dir: Path = Path(os.getenv("LOG_STATUS_PATH", "data/logs"))
@@ -66,6 +66,6 @@ class AlertManager:
             ts_safe = self.start_ts.replace(":", "-")
             out_path = self._log_dir / f"pipeline_status_{ts_safe}.json"
             out_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-            log.info(f"[AlertManager] Status gravado em: {out_path}")
+            log.info(f"[AlertManager] Status written to: {out_path}")
         except Exception as e:
-            log.error(f"[AlertManager] Falha ao gravar JSON de status: {e}")
+            log.error(f"[AlertManager] Failed to write status JSON: {e}")

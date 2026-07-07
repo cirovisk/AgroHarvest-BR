@@ -1,8 +1,8 @@
 """
-Orquestrador genérico.
-Registry + BaseSource = sem imports hardcoded aqui.
-Itera o registry. Chama `.run()`. Polimorfismo na prática.
-Limpo. Fácil manutenção.
+Generic orchestrator.
+Registry + BaseSource = no hardcoded imports here.
+Iterates over the registry and calls `.run()`. Practical polymorphism.
+Clean and easy to maintain.
 """
 
 import argparse
@@ -10,7 +10,7 @@ import gc
 import logging
 import time
 
-# IMPORTANTE: importar o pacote sources para acionar os @register
+# IMPORTANT: import the sources package to trigger @register
 import pipeline.sources  # noqa: F401
 from db.manager import get_db, init_db
 from pipeline.alert_manager import AlertManager
@@ -31,18 +31,18 @@ def main():
 
     parser = argparse.ArgumentParser(description="Pipeline AgroHarvest BR")
     parser.add_argument(
-        "--sources", nargs="+", choices=sources.keys(), default=list(sources.keys()), help="Fontes de dados a processar"
+        "--sources", nargs="+", choices=sources.keys(), default=list(sources.keys()), help="Data sources to process"
     )
-    parser.add_argument("--refresh", action="store_true", help="Força refresh de caches")
+    parser.add_argument("--refresh", action="store_true", help="Force cache refresh")
     args = parser.parse_args()
 
-    log.info("--- Iniciando Pipeline AgroHarvest BR (Registry) ---")
+    log.info("--- Starting AgroHarvest BR Pipeline (Registry) ---")
     init_db()
 
     from contextlib import closing
 
     with closing(next(get_db())) as db:
-        # Lookups compartilhados (construídos uma vez, usados por todos)
+        # Shared lookups (built once and used by every source)
         lookups = {
             "db": db,
             "culturas": preencher_dimensao_cultura(db, CULTURAS_ALVO),
@@ -60,7 +60,7 @@ def main():
         for name in args.sources:
             source_cls = sources.get(name)
             if not source_cls:
-                log.warning(f"Fonte '{name}' não registrada — pulando.")
+                log.warning(f"Source '{name}' is not registered; skipping.")
                 continue
             pipeline = source_cls()
             try:
@@ -74,10 +74,10 @@ def main():
             finally:
                 gc.collect()
 
-        log.info("--- Pipeline Concluído ---")
-        log.info(f"Sucesso: {success}")
+        log.info("--- Pipeline completed ---")
+        log.info(f"Success: {success}")
         if failed:
-            log.warning(f"Falhas: {failed}")
+            log.warning(f"Failures: {failed}")
 
         alert.send_report(success=success, failed=failed, duration=time.monotonic() - _start)
 

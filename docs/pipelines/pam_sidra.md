@@ -1,27 +1,27 @@
-# Pipeline: Produção Agrícola Municipal (PAM/SIDRA)
+# Pipeline: Municipal Agricultural Production (PAM/SIDRA)
 
-Extração de dados de produção agrícola das lavouras temporárias através da API v3 do IBGE SIDRA.
+Extraction of agricultural production data for temporary crops through the IBGE SIDRA v3 API.
 
-## 📌 Fonte de Dados
-- **Agregado:** Tabela 1612 (Produção Agrícola Municipal - Lavouras temporárias)
+## 📌 Data Source
+- **Aggregate:** Table 1612 (Municipal Agricultural Production - temporary crops)
 - **API:** [SIDRA API](https://apisidra.ibge.gov.br/)
-- **Granularidade:** Municipal (Nível 6) e Cultura (C81).
+- **Granularity:** Municipality (level 6) and crop (C81).
 
-## 🛠️ Processo de Extração
-1.  **Metadados:** O pipeline consulta primeiramente os metadados da Tabela 1612 para buscar os IDs dinâmicos de cada cultura na classificação 81.
+## 🛠️ Extraction Process
+1.  **Metadata:** The pipeline first queries the metadata for Table 1612 to retrieve the dynamic IDs for each crop in classification 81.
     - URL: `https://servicodados.ibge.gov.br/api/v3/agregados/1612/metadados`
-2.  **Consulta:** Para cada `crop_id` identificado (ex: Soja = 40280), é feita uma chamada REST solicitando:
-    - **Variáveis (`v`):** 109 (Área plantada), 216 (Área colhida), 214 (Quantidade produzida).
-    - **Território (`n6`):** Todos os municípios do Brasil.
-    - **Período (`p`):** Ano específico (configurado no extrator).
-3.  **URL Exemplo:** `https://apisidra.ibge.gov.br/values/t/1612/n6/all/v/109,216,214/p/2022/c81/40280`
+2.  **Query:** For each identified `crop_id` (for example, soybean = 40280), the pipeline makes a REST call requesting:
+    - **Variables (`v`):** 109 (planted area), 216 (harvested area), 214 (produced quantity).
+    - **Territory (`n6`):** All Brazilian municipalities.
+    - **Period (`p`):** Specific year configured in the extractor.
+3.  **Example URL:** `https://apisidra.ibge.gov.br/values/t/1612/n6/all/v/109,216,214/p/2022/c81/40280`
 
-## 🔄 Transformações (Cleaners)
-Lógica implementada em `src/pipeline/cleaners/sidra.py`:
-- **Normalização de Colunas:** Mapeamento de códigos SIDRA (D2N, V, D1C) para nomes amigáveis.
-- **Pivoteamento:** Transformação de variáveis (Linhas API) em colunas fato.
-- **Tratamento de Nulos:** Conversão de símbolos do IBGE (`...`, `-`) para `NaN`.
-- **Cultura Match:** Aplicação de `normalize_culture_name`.
+## 🔄 Transformations (Cleaners)
+Logic implemented in `src/pipeline/cleaners/sidra.py`:
+- **Column Normalization:** Maps SIDRA codes (D2N, V, D1C) to friendly names.
+- **Pivoting:** Transforms variables from API rows into fact columns.
+- **Null Handling:** Converts IBGE symbols (`...`, `-`) to `NaN`.
+- **Crop Match:** Applies `normalize_culture_name`.
 
-## 💾 Armazenamento
-Os dados são carregados na tabela `fato_producao_pam` no PostgreSQL, mantendo o histórico por ano e município.
+## 💾 Storage
+The data is loaded into the `fato_producao_pam` table in PostgreSQL, preserving history by year and municipality.

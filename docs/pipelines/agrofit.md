@@ -1,20 +1,20 @@
-# Pipeline: Agrofit (Defensivos Agrícolas)
+# Pipeline: Agrofit (Crop Protection Products)
 
-Extração de dados dos produtos formulados (agrotóxicos e afins) registrados no MAPA.
+Extraction of data for formulated products (pesticides and related products) registered with MAPA.
 
-## 📌 Fonte de Dados
-- **Agência:** MAPA (Ministério da Agricultura e Pecuária)
-- **Dataset:** [Agrofit - Dados Abertos](https://dados.agricultura.gov.br/dataset/agrofitprodutosformulados)
+## 📌 Data Source
+- **Agency:** MAPA (Ministry of Agriculture and Livestock)
+- **Dataset:** [Agrofit - Open Data](https://dados.agricultura.gov.br/dataset/agrofitprodutosformulados)
 
-## 🛠️ Processo de Extração
-1.  **Download CSV:** O pipeline faz o download do arquivo CSV consolidado de produtos formulados. Dada a alta volumetria, o extrator implementa uma lógica de **Incremental Cache** (checa se o arquivo local tem mais de 30 dias).
-2.  **Granularidade:** Produto, Ingrediente Ativo e Praga-Alvo.
+## 🛠️ Extraction Process
+1.  **CSV Download:** The pipeline downloads the consolidated CSV file for formulated products. Because of the high data volume, the extractor implements **Incremental Cache** logic and checks whether the local file is more than 30 days old.
+2.  **Granularity:** Product, active ingredient, and target pest.
 
-## 🔄 Transformações (Cleaners)
-A lógica de limpeza reside em `src/pipeline/cleaners/agrofit.py`:
-- **Mapeamento Praga-Cultura:** Conecta o produto à cultura recomendada e à praga comum.
-- **Normalização de Strings:** Limpeza de registros de ingredientes ativos e classificação de toxicidade.
-- **Cultura Match:** Uso de `normalize_culture_name` para vínculo com `dim_cultura`.
+## 🔄 Transformations (Cleaners)
+The cleaning logic lives in `src/pipeline/cleaners/agrofit.py`:
+- **Pest-Crop Mapping:** Connects the product to the recommended crop and common pest.
+- **String Normalization:** Cleans active ingredient records and toxicity classification values.
+- **Crop Match:** Uses `normalize_culture_name` to link records with `dim_cultura`.
 
-## 💾 Armazenamento
-Os dados são persistidos na tabela `fato_agrofit`. É extensível para permitir análises de quais cultivares possuem biotecnologias de resistência a determinados ingredientes ativos listados aqui.
+## 💾 Storage
+The data is persisted in the `fato_agrofit` table. The model is extensible enough to analyze which cultivars have resistance biotechnology for the active ingredients listed here.

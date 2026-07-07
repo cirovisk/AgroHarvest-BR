@@ -1,22 +1,22 @@
 # Pipeline: Registro Nacional de Cultivares (RNC)
 
-Extração do cadastro oficial de todas as cultivares (sementes/mudas) registradas para comercialização no Brasil.
+Extraction of the official registry of all cultivars (seeds/seedlings) registered for commercialization in Brazil.
 
-## 📌 Fonte de Dados
-- **Sistema:** CultivarWeb / MAPA SNPC.
-- **Tipo:** Dados de Registro e Proteção (Lei nº 9.456/1997 e Lei nº 10.711/2003).
+## 📌 Data Source
+- **System:** CultivarWeb / MAPA SNPC.
+- **Type:** Registration and protection data (Law No. 9,456/1997 and Law No. 10,711/2003).
 
-## 🛠️ Processo de Extração
-1.  **Web Scraping / Download:** O pipeline acessa a base consolidada do CultivarWeb que lista as variedades por cultura.
-2.  **Granularidade:** O dado vem ao nível de **Variedade (Cultivar)** e seu respectivo **Mantenedor** (empresa responsável pela genética).
+## 🛠️ Extraction Process
+1.  **Web Scraping / Download:** The pipeline accesses the consolidated CultivarWeb dataset that lists varieties by crop.
+2.  **Granularity:** The data is provided at **variety (cultivar)** level and includes the respective **maintainer** (the company responsible for the genetics).
 
-## 🔄 Transformações (Cleaners)
-Executado em `src/pipeline/cleaners/cultivares.py`:
-- **Extração de Empresas:** Normaliza o nome do mantenedor e classifica o **Setor** (ex: Privado vs Público - EMBRAPA).
-- **Datas de Validade:** Conversão de strings para objetos `date`.
-- **Cultura Match:** Uso de `normalize_culture_name` e busca de IDs na dimensão.
+## 🔄 Transformations (Cleaners)
+Executed in `src/pipeline/cleaners/cultivares.py`:
+- **Company Extraction:** Normalizes the maintainer name and classifies the **sector** (for example, private vs. public - EMBRAPA).
+- **Validity Dates:** Converts strings to `date` objects.
+- **Crop Match:** Uses `normalize_culture_name` and looks up IDs in the dimension.
 
-## 💾 Armazenamento
-- Os mantenedores alimentam a `dim_mantenedor`.
-- Os registros detalhados das variedades alimentam a `fato_registro_cultivares`.
-- Esta tabela é o **dimante** do projeto, permitindo saber quais tecnologias de semente estavam disponíveis em cada ano de safra.
+## 💾 Storage
+- Maintainers populate `dim_mantenedor`.
+- Detailed variety records populate `fato_registro_cultivares`.
+- This table is the **diamond** of the project, making it possible to identify which seed technologies were available in each crop year.

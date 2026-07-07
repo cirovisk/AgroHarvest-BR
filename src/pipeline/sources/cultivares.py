@@ -16,7 +16,7 @@ from pipeline.utils import get_cultura_id, normalize_string, upsert_data
 
 log = logging.getLogger(__name__)
 
-# Constantes de limpeza (correção de acentos em nomes de espécies)
+# Cleaning constants (accent correction in species names)
 ACCENT_CORRECTIONS = {
     "Alocasia": "Alocásia",
     "Amarilis": "Amarílis",
@@ -149,13 +149,13 @@ class CultivaresPipeline(BaseSource):
             else:
                 df_clean["NOME SECUNDÁRIO"] = pd.NA
 
-        # Normalização: Alinhamento de nomes para cruzamento
+        # Normalization: align names for matching
         if "NOME COMUM" in df_clean.columns:
             df_clean["CULTURA_NORMALIZADA"] = normalize_string(df_clean["NOME COMUM"])
         elif "GRUPO DA ESPÉCIE" in df_clean.columns:
             df_clean["CULTURA_NORMALIZADA"] = normalize_string(df_clean["GRUPO DA ESPÉCIE"])
 
-        # Transformação de data (ISO 8601)
+        # Date transformation (ISO 8601)
         for c in ["DATA DO REGISTRO", "DATA DE VALIDADE DO REGISTRO"]:
             if c in df_clean.columns:
                 antes_nulos = df_clean[c].isna().sum()
@@ -167,7 +167,7 @@ class CultivaresPipeline(BaseSource):
         if "DATA DO REGISTRO" in df_clean.columns:
             df_clean["ANO"] = df_clean["DATA DO REGISTRO"].dt.year.astype("Int64")
 
-        # Enriquecimento: Classificação de mantenedor (Público/Privado)
+        # Enrichment: maintainer classification (public/private)
         if "MANTENEDOR (REQUERENTE) (NOME)" in df_clean.columns:
             _PUBL = ["EMBRAPA", "UNIVERSIDADE", "INSTITUTO", "EPAGRI", "PESAGRO", "IAPAR", "SECRETARIA", "FACULDADE"]
 

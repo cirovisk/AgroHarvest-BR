@@ -1,25 +1,25 @@
 # AgroHarvest BR
 
-Pipeline de dados agrícolas com integração de fontes públicas, modelagem analítica e API para consumo dos dados.  
-Selecione o idioma:
+Agricultural data pipeline with public-source integration, analytical modeling, and an API for data consumption.  
+Select a language:
 
 - [Português](./README.pt-BR.md)
 - [English](./README.en.md)
 
-## Destaques
+## Highlights
 
-- Integração de RNC, PAM, ZARC, CONAB, Agrofit, SIPEAGRO, SIGEF e Open-Meteo
-- Pipeline modular com PostgreSQL, FastAPI e Metabase
-- Modelagem em Star Schema com foco em escalabilidade
-- Documentação visual em `docs/ARCHITECTURE_VISUAL.md`
+- Integration of RNC, PAM, ZARC, CONAB, Agrofit, SIPEAGRO, SIGEF, and Open-Meteo
+- Modular pipeline with PostgreSQL, FastAPI, and Metabase
+- Star Schema modeling focused on scalability
+- Visual documentation in `docs/ARCHITECTURE_VISUAL.md`
 
 ## Stack
 
-Python, PostgreSQL, SQLAlchemy, FastAPI, Uvicorn, SlowAPI, Docker, Docker Compose, Pytest, GitHub Actions e Metabase.
+Python, PostgreSQL, SQLAlchemy, FastAPI, Uvicorn, SlowAPI, Docker, Docker Compose, Pytest, GitHub Actions, and Metabase.
 
-## Estrutura
+## Structure
 
-- `src/`: API, pipeline, modelagem e orquestração
-- `docs/`: documentação técnica, metadata e diagramas
-- `tests/`: suíte de testes
-- `docker/`: imagem e dependências do ambiente
+- `src/`: API, pipeline, modeling, and orchestration
+- `docs/`: technical documentation, metadata, and diagrams
+- `tests/`: test suite
+- `docker/`: image and environment dependencies

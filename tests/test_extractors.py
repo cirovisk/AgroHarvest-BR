@@ -37,15 +37,15 @@ def test_sidra_transform(mock_sidra_raw):
     df_clean = pipeline.clean(mock_sidra_raw)
     
     assert not df_clean.empty
-    # Pivot_table cria 1 linha por index, entao tem que ter 2 linhas (Mun A - soja, Mun B - trigo)
+    # pivot_table creates one row per index, so there must be two rows (Mun A - soybean, Mun B - wheat)
     assert len(df_clean) == 2
     
     row_mun_a = df_clean[df_clean["cod_municipio_ibge"] == "1200013"].iloc[0]
     
-    # Valida conversao de '-' e '...' para NaN
+    # Validate conversion of '-' and '...' to NaN
     assert pd.isna(row_mun_a["area_colhida_ha"])
     assert pd.isna(row_mun_a["qtde_produzida_ton"])
-    # Área plantada era 1000 numérico
+    # Planted area was numeric 1000
     assert row_mun_a["area_plantada_ha"] == 1000.0
 
 def test_zarc_transform(mock_zarc_raw):

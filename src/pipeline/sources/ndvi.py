@@ -1,4 +1,4 @@
-"""Pipeline NDVI: Sensoriamento Remoto por Satélite (MODIS/GEE)."""
+"""NDVI pipeline: satellite remote sensing (MODIS/GEE)."""
 
 import logging
 import os
@@ -66,7 +66,7 @@ class NdviPipeline(BaseSource):
 
         df_f = df.copy()
 
-        # Mapear codigo_ibge para id_municipio
+        # Map codigo_ibge to id_municipio
         df_f["codigo_ibge"] = df_f["codigo_ibge"].str[:7]
         df_f["id_municipio"] = df_f["codigo_ibge"].map(lookups["municipios_ibge"])
 

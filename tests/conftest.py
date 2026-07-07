@@ -10,7 +10,7 @@ from sqlalchemy.orm import sessionmaker
 
 from src.db.manager import Base, init_db, DimCultura
 
-# Configurando banco In-Memory do SQLite p/ testes rápidos isolados do Postgres de produção
+# Configure an in-memory SQLite database for fast tests isolated from production Postgres
 TEST_DATABASE_URL = "sqlite:///:memory:"
 
 @pytest.fixture(scope="session")
@@ -24,7 +24,7 @@ def engine():
 @pytest.fixture(scope="function")
 def db_session(engine):
     connection = engine.connect()
-    # Ponto de savepoint do sqlite para rollback rapido
+    # SQLite savepoint for fast rollback
     transaction = connection.begin()
     Session = sessionmaker(bind=connection)
     session = Session()
@@ -32,7 +32,8 @@ def db_session(engine):
     yield session
 
     session.close()
-    transaction.rollback()
+    if transaction.is_active:
+        transaction.rollback()
     connection.close()
 
 @pytest.fixture
@@ -79,7 +80,7 @@ def mock_cultivares_raw():
 
 @pytest.fixture
 def mock_conab_raw():
-    """Mock dos dados crus da CONAB (Dicionário de Dataframes)."""
+    """Mock raw CONAB data (dictionary of DataFrames)."""
     df_prod = pd.DataFrame({
         "ano_agricola": ["2023/24"],
         "dsc_safra_previsao": ["1ª Safra"],
@@ -123,8 +124,8 @@ def mock_agrofit_raw():
 
 @pytest.fixture(autouse=True)
 def override_get_db(db_session):
-    """Sobrescreve a dependência get_session do FastAPI para usar a sessão de teste (SQLite)."""
-    # Import tardio para evitar conflitos de importação circular
+    """Override FastAPI's get_session dependency to use the SQLite test session."""
+    # Late import to avoid circular import conflicts
     from api.main import app
     from api.dependencies import get_session
     

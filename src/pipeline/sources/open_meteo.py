@@ -47,7 +47,7 @@ class OpenMeteoPipeline(BaseSource):
 
         mun_coords = {}
         for m in all_muns:
-            # Codigo IBGE no CSV geralmente é os 7 digitos
+            # IBGE code in the CSV is usually the seven-digit code
             match = coords_df[coords_df["codigo_ibge"].astype(str) == str(m.codigo_ibge)]
             if not match.empty:
                 mun_coords[m.id_municipio] = {"lat": match.iloc[0]["latitude"], "lon": match.iloc[0]["longitude"]}
@@ -55,7 +55,7 @@ class OpenMeteoPipeline(BaseSource):
         if not mun_coords:
             return "0 registros (nenhum município com coordenadas)"
 
-        # Para fins de portfólio e evitar timeout na API, limitamos a 50 municípios aleatórios
+        # For portfolio purposes and to avoid API timeouts, limit to 50 random municipalities
         limit = kwargs.get("limit", 50)
         selected_muns = dict(list(mun_coords.items())[:limit])
         self.log.info(f"Selecionados {len(selected_muns)} municípios para buscar dados meteorológicos.")

@@ -1,16 +1,16 @@
 .PHONY: build up down test lint format logs shell status help
 
 help:
-	@echo "Comandos disponíveis (cultivares v1):"
-	@echo "  make build       - Constrói as imagens Docker do projeto"
-	@echo "  make up          - Sobe os serviços principais em background (PostgreSQL e API)"
-	@echo "  make down        - Derruba os serviços e remove os containers"
-	@echo "  make test        - Executa todos os testes unitários via Docker"
+	@echo "Available commands (cultivares v1):"
+	@echo "  make build       - Build the project's Docker images"
+	@echo "  make up          - Start the main services in the background (PostgreSQL and API)"
+	@echo "  make down        - Stop services and remove containers"
+	@echo "  make test        - Run all unit tests through Docker"
 	@echo "  make lint        - Roda checagem de estilo/qualidade (Ruff) e checagem de tipos (Mypy)"
-	@echo "  make format      - Roda a formatação automática de código com Ruff"
+	@echo "  make format      - Run automatic code formatting with Ruff"
 	@echo "  make logs        - Exibe e acompanha os logs dos containers"
 	@echo "  make shell       - Abre um shell interativo bash no container de desenvolvimento"
-	@echo "  make status      - Exibe o status atual de execução dos containers"
+	@echo "  make status      - Show the current container runtime status"
 
 build:
 	docker compose build

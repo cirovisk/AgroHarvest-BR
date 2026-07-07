@@ -8,7 +8,7 @@ from db.manager import FatoFertilizante, DimMunicipio
 
 @pytest.fixture
 def mock_fertilizantes_csv():
-    # Retorna conteúdo CSV simulando o SIPEAGRO
+    # Return CSV content simulating SIPEAGRO
     lines = [
         "UNIDADE_DA_FEDERACAO;MUNICIPIO;NUMERO_REGISTRO_ESTABELECIMENTO;STATUS_DO_REGISTRO;CNPJ;RAZAO_SOCIAL;NOME_FANTASIA;AREA_ATUACAO;ATIVIDADE;CLASSIFICACAO",
         "MT;Sorriso ;MT-000123-4;Ativo;12.345.678/0001-90;AGRO LTDA ;Agro Fantasia;Fertilizantes;Produtor;Comerciante",
@@ -37,8 +37,8 @@ def test_fertilizantes_extract(tmp_path, mock_fertilizantes_csv):
 
 def test_fertilizantes_clean():
     pipeline = FertilizantesPipeline()
-    # Usa astype(object) para garantir que o tipo interno das colunas seja exatamente
-    # 'object' em todas as versões do Pandas, permitindo que a limpeza ocorra.
+    # Use astype(object) to ensure the internal column type is exactly
+    # 'object' across Pandas versions, allowing cleaning to run.
     raw_df = pd.DataFrame({
         "UNIDADE_DA_FEDERACAO": ["MT ", " SP"],
         "MUNICIPIO": ["Sorriso", "Campinas "],
@@ -82,13 +82,13 @@ def test_fertilizantes_load(mock_upsert):
         "municipios_nome": {("sorriso", "MT"): 10}
     }
     
-    # Carrega os dados, mockando a inserção no banco de produção
+    # Load data while mocking insertion into the production database
     res = pipeline.load(clean_df, lookups)
     
     assert "1 estabelecimentos upserted" in res
     assert mock_upsert.call_count == 1
     
-    # Unpack correspondendo à chamada posicional e keyword
+    # Unpack matching the positional and keyword call
     args, kwargs = mock_upsert.call_args
     called_model = args[0]
     called_df = args[1]

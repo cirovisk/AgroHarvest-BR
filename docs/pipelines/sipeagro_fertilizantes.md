@@ -1,20 +1,20 @@
-# Pipeline: SIPEAGRO (Estabelecimentos de Fertilizantes)
+# Pipeline: SIPEAGRO (Fertilizer Establishments)
 
-Extração do cadastro de estabelecimentos que comercializam ou produzem fertilizantes no Brasil.
+Extraction of the registry of establishments that sell or produce fertilizers in Brazil.
 
-## 📌 Fonte de Dados
-- **Agência:** MAPA (Ministério da Agricultura e Pecuária)
-- **Dataset:** [SIPEAGRO - Estabelecimentos](https://dados.agricultura.gov.br/dataset/52a01565-72d6-410e-b21b-64035831a7be/resource/e0bbc9d5-f161-448b-a6d4-c7beb312ec33)
+## 📌 Data Source
+- **Agency:** MAPA (Ministry of Agriculture and Livestock)
+- **Dataset:** [SIPEAGRO - Establishments](https://dados.agricultura.gov.br/dataset/52a01565-72d6-410e-b21b-64035831a7be/resource/e0bbc9d5-f161-448b-a6d4-c7beb312ec33)
 
-## 🛠️ Processo de Extração
-1.  **Download CSV:** Download direto via HTTP.
-2.  **Versioning:** O script mantém uma pasta `archive` para guardar versões anteriores do dataset antes de atualizar, garantindo a idempotência e histórico de mudanças nos estabelecimentos.
+## 🛠️ Extraction Process
+1.  **CSV Download:** Direct download over HTTP.
+2.  **Versioning:** The script keeps an `archive` folder to store previous dataset versions before updating, preserving idempotency and a history of establishment changes.
 
-## 🔄 Transformações (Cleaners)
-Implementado em `src/pipeline/cleaners/fertilizantes.py`:
-- **Limpeza de CNPJ:** Padronização numérica.
-- **Tratamento de Encoding:** Conversão de `latin1` para `utf-8`.
-- **Match de Município:** Join dinâmico com `dim_municipio`.
+## 🔄 Transformations (Cleaners)
+Implemented in `src/pipeline/cleaners/fertilizantes.py`:
+- **CNPJ Cleaning:** Numeric standardization.
+- **Encoding Handling:** Conversion from `latin1` to `utf-8`.
+- **Municipality Match:** Dynamic join with `dim_municipio`.
 
-## 💾 Armazenamento
-Os dados alimentam a tabela `fato_fertilizantes_estabelecimentos`, fornecendo uma visão clara da infraestrutura de insumos disponível em cada microrregião produtiva.
+## 💾 Storage
+The data feeds the `fato_fertilizantes_estabelecimentos` table, providing a clear view of the input infrastructure available in each producing microregion.

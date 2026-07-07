@@ -85,7 +85,7 @@ def carregar_municipios_completo_ibge(db):
         log.error(f"Falha ao buscar municípios no IBGE: {e}")
         return preencher_dimensao_municipio(db)
 
-    # Bulk: busca todos os códigos existentes em UMA query (vs. 5570 queries individuais)
+    # Bulk: fetch all existing codes in ONE query instead of 5,570 individual queries
     existing_codes = set(r[0] for r in db.query(DimMunicipio.codigo_ibge).all())
 
     novos_objetos = []
@@ -96,13 +96,13 @@ def carregar_municipios_completo_ibge(db):
 
         nome = m["nome"]
 
-        # Extração robusta da UF tentando diferentes caminhos na hierarquia IBGE
+        # Robust state extraction by trying different paths in the IBGE hierarchy
         uf = None
         try:
-            # Caminho 1: Microrregião -> Mesorregião -> UF
+            # Path 1: microregion -> mesoregion -> state
             uf = m.get("microrregiao", {}).get("mesorregiao", {}).get("UF", {}).get("sigla")
 
-            # Caminho 2 (Fallback): Região Imediata -> Região Intermediária -> UF
+            # Path 2 (fallback): immediate region -> intermediate region -> state
             if not uf:
                 uf = m.get("regiao-imediata", {}).get("regiao-intermediaria", {}).get("UF", {}).get("sigla")
         except Exception:

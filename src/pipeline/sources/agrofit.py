@@ -1,4 +1,4 @@
-"""Pipeline Agrofit: Produtos Formulados / Agrotóxicos (MAPA)."""
+"""Agrofit pipeline: formulated products / pesticides (MAPA)."""
 
 import logging
 from pathlib import Path

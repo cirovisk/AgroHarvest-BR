@@ -24,7 +24,7 @@ def test_record_error_and_warning():
 
 
 def test_save_json(tmp_path):
-    # Usando diretório temporário para salvar logs
+    # Use a temporary directory to save logs
     log_dir = tmp_path / "logs"
     alert = AlertManager(pipeline_name="Test Pipeline")
     alert._log_dir = log_dir
@@ -45,7 +45,7 @@ def test_save_json(tmp_path):
 
     alert._save_json(payload)
 
-    # Verifica se o arquivo foi criado e seu conteúdo é idêntico
+    # Verify that the file was created and its content is identical
     ts_safe = alert.start_ts.replace(":", "-")
     expected_path = log_dir / f"pipeline_status_{ts_safe}.json"
     
@@ -58,7 +58,6 @@ def test_save_json(tmp_path):
     assert data["status"] == "SUCCESS"
     assert data["duration_seconds"] == 12.5
     assert data["sources_ok"] == ["sidra", "conab"]
-
 
 
 

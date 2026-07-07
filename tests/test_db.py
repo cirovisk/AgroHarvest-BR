@@ -3,7 +3,7 @@ from sqlalchemy.exc import IntegrityError
 from src.db.manager import DimCultura, DimMunicipio, FatoCultivar, FatoProducaoConab, FatoAgrofit, FatoPrecoConabMensal
 
 def test_inserir_dim_cultura(db_session):
-    # Inserção de uma cultura limpa
+    # Insert a clean crop
     nova_cultura = DimCultura(nome_padronizado="soja")
     db_session.add(nova_cultura)
     db_session.commit()

@@ -52,7 +52,7 @@ services:
       - PYTHONPATH=/app/src
     working_dir: /app
     command: ["python", "-m", "pytest", "tests/", "-v", "--tb=short"]
-    # Testes unitários usam SQLite in-memory (conftest.py) — não precisam de Postgres
+    # Unit tests use in-memory SQLite (conftest.py), so they do not need Postgres
 
   api:
     build:

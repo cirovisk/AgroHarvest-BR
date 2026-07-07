@@ -47,7 +47,7 @@ class ProducaoPAMSchema(BaseModel):
     area_colhida_ha: Optional[float] = None
     qtde_produzida_ton: Optional[float] = None
     valor_producao_mil_reais: Optional[float] = None
-    # Adicionamos cultura e municipio resolvidos no router para facilitar a resposta
+    # Add resolved crop and municipality in the router to simplify the response
     cultura: str
     municipio_nome: str
     uf: Optional[str] = None
@@ -144,7 +144,7 @@ class DossieInsumosCulturaSchema(BaseModel):
     grau_de_tecnologia: Optional[str] = None
 
 
-# 2.3 ViabilidadeEconomica (PAM + Preços CONAB)
+# 2.3 EconomicViability (PAM + CONAB prices)
 class ViabilidadeEconomicaSchema(BaseModel):
     ano: int
     cultura: str

@@ -45,17 +45,17 @@ class ZarcPipeline(BaseSource):
         self.chunksize = chunksize
 
     def run(self, lookups: dict, **kwargs) -> str:
-        """Override: processa em chunks para economia de memória."""
+        """Override: process in chunks to save memory."""
         self.log.info("Iniciando pipeline ZARC (streaming)...")
 
-        # Faz o download automático se necessário
+        # Download automatically if needed
         self.download_data()
 
         total = 0
         for chunk in self.extract():
             clean_chunk = self.clean(chunk)
             result = self.load(clean_chunk, lookups)
-            # Extrai número do resultado
+            # Extract the result number
             try:
                 total += int(result.split()[0])
             except (ValueError, IndexError):
@@ -81,7 +81,7 @@ class ZarcPipeline(BaseSource):
             f"Arquivos ausentes para: {missing_crops}. Iniciando download do portal de Dados Abertos do MAPA..."
         )
         try:
-            # Baixando arquivo massivo em streaming para não estourar a RAM
+            # Download the massive file as a stream to avoid exhausting RAM
             raw_file = self.data_dir / "zarc_raw_download.csv"
 
             if not raw_file.exists():
@@ -108,7 +108,7 @@ class ZarcPipeline(BaseSource):
                 self.log.info("Download unificado concluído.")
 
             self.log.info("Separando arquivo massivo por cultura para otimização de leitura futura...")
-            # Lendo em chunks o arquivo massivo para criar os arquivos individuais
+            # Read the massive file in chunks to create individual files
             reader = pd.read_csv(raw_file, sep=";", encoding="utf-8", on_bad_lines="skip", chunksize=200000)
 
             # Inicializando os arquivos vazios com header
@@ -138,7 +138,7 @@ class ZarcPipeline(BaseSource):
                         headers_written[crop] = True
 
             self.log.info("Separação por cultura concluída!")
-            # Opcional: remover raw_file para poupar disco
+            # Optional: remove raw_file to save disk space
             # raw_file.unlink(missing_ok=True)
 
         except Exception as e:
@@ -167,7 +167,7 @@ class ZarcPipeline(BaseSource):
                         compression="gzip" if is_gzip else None,
                     )
                     for chunk in reader:
-                        # Tenta identificar a cultura no chunk se não houver coluna fixa
+                        # Try to identify the crop in the chunk when there is no fixed column
                         if "Nome_cultura" in chunk.columns:
                             chunk["cultura_raw"] = chunk["Nome_cultura"]
                         elif "cultura_raw" not in chunk.columns:
@@ -192,7 +192,7 @@ class ZarcPipeline(BaseSource):
                     with open(cache_file, "rb") as f:
                         is_gzip = f.read(2) == b"\x1f\x8b"
 
-                    # Carrega apenas o cabeçalho para validar colunas
+                    # Load only the header to validate columns
                     header_check = pd.read_csv(cache_file, sep=";", nrows=0, compression="gzip" if is_gzip else None)
                     use_cols = (
                         ["cod_municipio_ibge", "municipio", "uf"]
@@ -256,7 +256,7 @@ class ZarcPipeline(BaseSource):
         df_f["cod_municipio_ibge"] = df_f["cod_municipio_ibge"].astype(str).str[:7]
         df_f["id_municipio"] = df_f["cod_municipio_ibge"].map(map_mun)
 
-        # Tratamento de colunas dec1...dec36 (Formato Largo para Longo)
+        # Handle dec1...dec36 columns (wide to long format)
         dec_cols = [c for c in df_f.columns if c.lower().startswith("dec")]
         if dec_cols:
             id_vars = [c for c in df_f.columns if c not in dec_cols]

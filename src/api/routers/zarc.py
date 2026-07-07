@@ -10,7 +10,7 @@ from db.manager import DimCultura, DimMunicipio, FatoRiscoZARC
 router = APIRouter(prefix="/zarc", tags=["ZARC - Zoneamento Agrícola"])
 
 # ==========================================
-# RISCO CLIMÁTICO
+# CLIMATE RISK
 # ==========================================
 
 

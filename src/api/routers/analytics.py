@@ -36,7 +36,7 @@ from db.manager import (
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
 
-# 2.1  Raio-X Agroclimático Municipal
+# 2.1  Municipal Agroclimatic X-Ray
 #      Fontes: PAM (IBGE) + ZARC (MAPA) + Meteorologia (INMET)
 @router.get(
     "/raio-x-municipal",
@@ -112,8 +112,8 @@ def raio_x_municipal(
             "precipitacao_anual_mm": round(clima_row.precipitacao_anual_mm or 0, 2),
         }
 
-    # Heurística de quebra de safra:
-    # considera quebra se produção < 50% da área plantada * threshold mínimo (5 t/ha)
+    # Crop failure heuristic:
+    # considers failure when production < 50% of planted area * minimum threshold (5 t/ha)
     ocorreu_quebra = None
     if pam and pam.area_plantada_ha and pam.qtde_produzida_ton:
         produtividade = pam.qtde_produzida_ton / pam.area_plantada_ha
@@ -131,7 +131,7 @@ def raio_x_municipal(
     )
 
 
-# 2.2  Dossiê de Insumos por Cultura
+# 2.2  Input Dossier by Crop
 #      Fontes: RNC (MAPA/Cultivares) + SIGEF + Agrofit
 @router.get(
     "/dossie-insumos/{cultura}",
@@ -167,7 +167,7 @@ def dossie_insumos(cultura: str, db: Session = Depends(get_session)):
         .scalar()
     )
 
-    # Defensivos Agrofit — nomes únicos de marcas comerciais
+    # Agrofit crop protection products: unique commercial brand names
     defensivos_rows = (
         db.query(FatoAgrofit.marca_comercial)
         .filter(FatoAgrofit.id_cultura == cult.id_cultura)
@@ -191,7 +191,7 @@ def dossie_insumos(cultura: str, db: Session = Depends(get_session)):
     )
     pragas = [r[0] for r in pragas_rows]
 
-    # Grau de tecnologia: heurística a partir do número de defensivos registrados
+    # Technology level: heuristic based on the number of registered crop protection products
     total_def = (
         db.query(func.count(FatoAgrofit.id_agrofit)).filter(FatoAgrofit.id_cultura == cult.id_cultura).scalar() or 0
     )
@@ -212,8 +212,8 @@ def dossie_insumos(cultura: str, db: Session = Depends(get_session)):
     )
 
 
-# 2.3  Viabilidade Econômica
-#      Fontes: PAM (produção IBGE) + Preços CONAB Mensal
+# 2.3  Economic Viability
+#      Sources: PAM (IBGE production) + monthly CONAB prices
 @router.get(
     "/viabilidade-economica",
     response_model=ViabilidadeEconomicaSchema,
@@ -234,7 +234,7 @@ def viabilidade_economica(
     if not cult:
         raise HTTPException(status_code=404, detail=f"Cultura '{cultura}' não encontrada.")
 
-    # Produção total da UF no ano (soma de municípios pelo PAM)
+    # Total state production in the year (sum of municipalities from PAM)
     prod_row = (
         db.query(
             func.sum(FatoProducaoPAM.qtde_produzida_ton).label("producao_total_ton"),
@@ -252,7 +252,7 @@ def viabilidade_economica(
     producao_ton = float(prod_row.producao_total_ton) if prod_row and prod_row.producao_total_ton else None
     area_ha = float(prod_row.area_total_ha) if prod_row and prod_row.area_total_ha else None
 
-    # Preço médio anual ao produtor (CONAB mensal — nível produtor, convertido para /t)
+    # Average annual producer price (monthly CONAB, producer level, converted to /t)
     preco_row = (
         db.query(func.avg(FatoPrecoConabMensal.valor_kg).label("preco_medio_kg"))
         .filter(
@@ -265,12 +265,12 @@ def viabilidade_economica(
     preco_kg = float(preco_row.preco_medio_kg) if preco_row and preco_row.preco_medio_kg else None
     preco_ton = preco_kg * 1000 if preco_kg else None
 
-    # Valor Bruto da Produção (VGB) em milhões de R$
+    # Gross Production Value (GPV) in millions of BRL
     vgb = None
     if producao_ton and preco_ton:
         vgb = round((producao_ton * preco_ton) / 1_000_000, 2)
 
-    # Renda média por hectare
+    # Average income per hectare
     renda_ha = None
     if vgb and area_ha and area_ha > 0:
         renda_ha = round((vgb * 1_000_000) / area_ha, 2)
@@ -287,7 +287,7 @@ def viabilidade_economica(
     )
 
 
-# 2.4  Janela de Aplicação de Insumos
+# 2.4  Input Application Window
 #      Fontes: Fertilizantes (SIPEAGRO) + Meteorologia (INMET)
 @router.get(
     "/janela-aplicacao",
@@ -321,7 +321,7 @@ def janela_aplicacao(
         or 0
     )
 
-    # Precipitação acumulada do mês
+    # Accumulated precipitation for the month
     chuva_row = (
         db.query(func.sum(FatoMeteorologia.precipitacao_total_mm).label("chuva_total"))
         .filter(
@@ -334,12 +334,12 @@ def janela_aplicacao(
 
     chuva_mm = float(chuva_row.chuva_total) if chuva_row and chuva_row.chuva_total else None
 
-    # Heurística de janela perfeita: entre 50 e 200 mm e tem estabelecimentos suficientes
+    # Perfect-window heuristic: between 50 and 200 mm and enough establishments
     janela_perfeita = None
     if chuva_mm is not None:
         janela_perfeita = (50.0 <= chuva_mm <= 200.0) and estab_count >= 3
 
-    # Capacidade de atendimento baseada no número de estabelecimentos
+    # Service capacity based on the number of establishments
     if estab_count >= 50:
         capacidade = "Alta"
     elif estab_count >= 15:
@@ -382,7 +382,7 @@ def auditoria_estimativas(
     if not cult:
         raise HTTPException(status_code=404, detail=f"Cultura '{cultura}' não encontrada.")
 
-    # CONAB: produção estimada — agrupada por UF e ano_agricola
+    # CONAB: estimated production grouped by state and crop year
     conab_q = (
         db.query(
             FatoProducaoConab.uf,
@@ -397,7 +397,7 @@ def auditoria_estimativas(
 
     conab_rows = conab_q.limit(50).all()
 
-    # PAM Realizado Consolidadas em uma única query bulk para evitar o N+1 queries!
+    # Actual PAM consolidated in a single bulk query to avoid N+1 queries
     pam_rows = (
         db.query(DimMunicipio.uf, FatoProducaoPAM.ano, func.sum(FatoProducaoPAM.qtde_produzida_ton).label("prod_ton"))
         .join(DimMunicipio, FatoProducaoPAM.id_municipio == DimMunicipio.id_municipio)
@@ -413,19 +413,19 @@ def auditoria_estimativas(
 
     results = []
     for row in conab_rows:
-        # Extraímos o ano de início da safra para buscar no PAM
+        # Extract the crop-season start year to query PAM
         # Formato do ano_agricola: "2023/24" → ano=2023
         try:
             ano_pam = int(row.ano_agricola.split("/")[0])
         except (ValueError, AttributeError, IndexError):
             continue
 
-        # PAM Realizado buscado em O(1) do dicionário em memória
+        # Actual PAM fetched in O(1) from the in-memory dictionary
         realizado_ton = pam_lookup.get((str(row.uf).upper().strip(), ano_pam), None)
         realizado_mil_t = (realizado_ton / 1000.0) if realizado_ton else None
         estimativa_mil_t = float(row.estimativa_mil_t) if row.estimativa_mil_t else None
 
-        # Variação percentual: (realizado - estimado) / estimado * 100
+        # Percentage variation: (actual - estimated) / estimated * 100
         variacao = None
         acuracidade = None
         if realizado_mil_t is not None and estimativa_mil_t and estimativa_mil_t > 0:

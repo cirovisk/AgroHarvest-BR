@@ -1,25 +1,24 @@
-# Documentação de Pipelines (ETL)
+# Pipeline Documentation (ETL)
 
-Esta pasta contém o detalhamento técnico de cada pipeline de extração e transformação (ETL) implementado no projeto **AgroHarvest BR**.
+This folder contains the technical details for each extraction and transformation (ETL) pipeline implemented in **AgroHarvest BR**.
 
-## 📑 Índice de Fontes
+## 📑 Source Index
 
-| Fonte | Entidade Responsável | Arquivo de Documentação |
+| Source | Responsible Entity | Documentation File |
 | :--- | :--- | :--- |
 | **SIDRA/PAM** | IBGE | [pam_sidra.md](./pam_sidra.md) |
 | **ZARC** | MAPA | [zarc_mapa.md](./zarc_mapa.md) |
 | **CONAB** | CONAB | [conab_agro.md](./conab_agro.md) |
 | **Cultivares (RNC)** | MAPA/SNPC | [rnc_cultivares.md](./rnc_cultivares.md) |
 | **Agrofit** | MAPA | [agrofit.md](./agrofit.md) |
-| **Fertilizantes** | MAPA/SIPEAGRO | [sipeagro_fertilizantes.md](./sipeagro_fertilizantes.md) |
+| **Fertilizers** | MAPA/SIPEAGRO | [sipeagro_fertilizantes.md](./sipeagro_fertilizantes.md) |
 
 ---
 
-## 🏗️ Padrão de Engenharia
+## 🏗️ Engineering Pattern
  
- O projeto utiliza uma arquitetura de pipeline desacoplada:
+The project uses a decoupled pipeline architecture:
 
-1.  **Extractors (`src/pipeline/`):** Classes que gerenciam a conexão com a fonte, o download dos dados e a persistência em cache. Não contêm lógica de negócio complexa.
-2.  **Cleaners (`src/pipeline/cleaners/`):** Funções puras (sem estado) que recebem dados brutos (JSON/CSV) e devolvem DataFrames normalizados. Este desacoplamento permite testar a limpeza de dados sem precisar de internet ou banco de dados.
-3.  **Normalização Centralizada:** Uso do método `normalize_culture_name` (`src/pipeline/utils.py`) para unificar as nomenclaturas de culturas entre IBGE, MAPA e CONAB.
-
+1.  **Extractors (`src/pipeline/`):** Classes that manage the connection to each source, data downloads, and cache persistence. They do not contain complex business logic.
+2.  **Cleaners (`src/pipeline/cleaners/`):** Pure stateless functions that receive raw data (JSON/CSV) and return normalized DataFrames. This decoupling makes it possible to test data cleaning without internet or database access.
+3.  **Centralized Normalization:** The `normalize_culture_name` method (`src/pipeline/utils.py`) is used to unify crop names across IBGE, MAPA, and CONAB.
