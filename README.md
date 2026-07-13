@@ -28,6 +28,18 @@ make api
 
 `make validate-db` checks whether the required PostgreSQL tables exist and contain data after ingestion.
 
+## Logs and Audit
+
+Logs are centralized in `data/logs/app.log` with automatic rotation. Each pipeline execution receives a `run_id` that is included in logs and final reports.
+
+Generated files:
+
+- `data/logs/app.log`: API and pipeline log.
+- `data/logs/pipeline_status_*.json`: execution summary.
+- `data/logs/pipeline_metrics_*.csv`: source-level metrics.
+
+Use `LOG_FORMAT=json` for structured JSON logs.
+
 ## Structure
 
 - `src/`: API, pipeline, modeling, and orchestration

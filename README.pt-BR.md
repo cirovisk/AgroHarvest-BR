@@ -55,6 +55,22 @@ make api
 
 `make validate-db` executa uma verificacao pos-carga com contagem de linhas por tabela obrigatoria. Isso ajuda a identificar falhas parciais em fontes externas, como timeouts em APIs publicas.
 
+## Logs e auditoria
+
+O projeto grava logs centralizados em `data/logs/app.log` com rotacao automatica. Cada execucao do pipeline recebe um `run_id`, registrado nos logs e no relatorio final.
+
+Arquivos gerados:
+
+- `data/logs/app.log`: log da API e do pipeline.
+- `data/logs/pipeline_status_*.json`: resumo da execucao.
+- `data/logs/pipeline_metrics_*.csv`: metricas por fonte.
+
+Para logs estruturados em JSON, use:
+
+```env
+LOG_FORMAT=json
+```
+
 ## Documentação
 
 - Arquitetura visual: `docs/ARCHITECTURE_VISUAL.md`

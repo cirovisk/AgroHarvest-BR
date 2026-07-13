@@ -1,6 +1,8 @@
 import logging
 import os
+import time
 import traceback
+import uuid
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
@@ -13,6 +15,11 @@ from slowapi.util import get_remote_address
 
 # Ensure local .env environment variables are loaded
 load_dotenv()
+
+from logging_config import configure_logging
+
+configure_logging()
+log = logging.getLogger(__name__)
 
 from api.routers import analytics, clima, culturas, insumos, municipios, producao, zarc
 
@@ -49,12 +56,31 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
 
+@app.middleware("http")
+async def access_log_middleware(request: Request, call_next):
+    started = time.monotonic()
+    response = await call_next(request)
+    duration = time.monotonic() - started
+    log.info(
+        "API request completed",
+        extra={
+            "event": "api_request",
+            "method": request.method,
+            "path": request.url.path,
+            "status": response.status_code,
+            "duration_seconds": round(duration, 4),
+        },
+    )
+    return response
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    import uuid
-
     error_id = str(uuid.uuid4())
-    logging.error(f"FATAL ERROR [{error_id}]: {request.url}\n{traceback.format_exc()}")
+    log.error(
+        f"FATAL ERROR [{error_id}]: {request.url}\n{traceback.format_exc()}",
+        extra={"event": "api_error", "error_id": error_id, "method": request.method, "path": request.url.path},
+    )
     return JSONResponse(
         status_code=500,
         content={

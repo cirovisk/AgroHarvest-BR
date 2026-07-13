@@ -3,6 +3,7 @@ Pipeline Alert Manager (PostgreSQL).
 Saves execution status JSON files in data/logs/.
 """
 
+import csv
 import json
 import logging
 import os
@@ -20,6 +21,7 @@ class AlertManager:
         self.pipeline_name = pipeline_name
         self.errors: list[dict] = []
         self.warnings: list[str] = []
+        self.sources: list[dict] = []
         self.started_at: float = time.monotonic()
         # Filesystem-safe UTC ISO timestamp
         self.start_ts: str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
@@ -31,6 +33,24 @@ class AlertManager:
 
     def record_warning(self, message: str) -> None:
         self.warnings.append(message)
+
+    def record_source(
+        self,
+        source: str,
+        status: str,
+        duration: float,
+        result: str | None = None,
+        error: str | None = None,
+    ) -> None:
+        self.sources.append(
+            {
+                "source": source,
+                "status": status,
+                "duration_seconds": round(duration, 2),
+                "result": result,
+                "error": error,
+            }
+        )
 
     def send_report(self, success: list[str], failed: list[str], duration: float | None = None) -> None:
         if duration is None:
@@ -56,9 +76,11 @@ class AlertManager:
             "warning_count": len(self.warnings),
             "errors": self.errors,
             "warnings": self.warnings,
+            "sources": self.sources,
         }
 
         self._save_json(payload)
+        self._save_metrics_csv()
 
     def _save_json(self, payload: dict) -> None:
         try:
@@ -69,3 +91,19 @@ class AlertManager:
             log.info(f"[AlertManager] Status written to: {out_path}")
         except Exception as e:
             log.error(f"[AlertManager] Failed to write status JSON: {e}")
+
+    def _save_metrics_csv(self) -> None:
+        try:
+            self._log_dir.mkdir(parents=True, exist_ok=True)
+            ts_safe = self.start_ts.replace(":", "-")
+            out_path = self._log_dir / f"pipeline_metrics_{ts_safe}.csv"
+            with out_path.open("w", encoding="utf-8", newline="") as file:
+                writer = csv.DictWriter(
+                    file,
+                    fieldnames=["source", "status", "duration_seconds", "result", "error"],
+                )
+                writer.writeheader()
+                writer.writerows(self.sources)
+            log.info(f"[AlertManager] Metrics written to: {out_path}")
+        except Exception as e:
+            log.error(f"[AlertManager] Failed to write metrics CSV: {e}")
