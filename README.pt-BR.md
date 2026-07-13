@@ -44,6 +44,17 @@ docker-compose up api
 docker-compose run --rm test
 ```
 
+Fluxo recomendado:
+
+```bash
+make setup
+make ingest
+make validate-db
+make api
+```
+
+`make validate-db` executa uma verificacao pos-carga com contagem de linhas por tabela obrigatoria. Isso ajuda a identificar falhas parciais em fontes externas, como timeouts em APIs publicas.
+
 ## Documentação
 
 - Arquitetura visual: `docs/ARCHITECTURE_VISUAL.md`

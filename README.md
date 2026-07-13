@@ -17,6 +17,17 @@ Select a language:
 
 Python, PostgreSQL, SQLAlchemy, FastAPI, Uvicorn, SlowAPI, Docker, Docker Compose, Pytest, GitHub Actions, and Metabase.
 
+## Operational Quickstart
+
+```bash
+make setup
+make ingest
+make validate-db
+make api
+```
+
+`make validate-db` checks whether the required PostgreSQL tables exist and contain data after ingestion.
+
 ## Structure
 
 - `src/`: API, pipeline, modeling, and orchestration

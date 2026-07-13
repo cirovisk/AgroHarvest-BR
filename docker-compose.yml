@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: cultivares_pg
+    container_name: cultivares_pg_postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -26,7 +26,7 @@ services:
     build:
       context: .
       dockerfile: docker/app.Dockerfile
-    container_name: cultivares_app
+    container_name: cultivares_pg_app
     env_file: .env
     volumes:
       - .:/app
@@ -44,7 +44,7 @@ services:
     build:
       context: .
       dockerfile: docker/app.Dockerfile
-    container_name: cultivares_test
+    container_name: cultivares_pg_test
     env_file: .env
     volumes:
       - .:/app
@@ -58,7 +58,7 @@ services:
     build:
       context: .
       dockerfile: docker/app.Dockerfile
-    container_name: cultivares_api
+    container_name: cultivares_pg_api
     env_file: .env
     volumes:
       - .:/app
@@ -80,7 +80,7 @@ services:
 
   metabase:
     image: metabase/metabase:v0.50.21
-    container_name: cultivares_metabase
+    container_name: cultivares_pg_metabase
     profiles: ["dashboard"]
     ports:
       - "3000:3000"
