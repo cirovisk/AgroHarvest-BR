@@ -287,6 +287,11 @@ class ZarcPipeline(BaseSource):
             clean.get("cultura_raw", clean.get("cultura_cache", pd.Series("", index=clean.index))),
         )
         clean["cultura"] = normalize_string(source_culture.astype(str)).str.replace(" ", "-", regex=False)
+        # O ZARC detalha algumas culturas por finalidade/safra; consolide
+        # esses nomes na cultura-alvo para cobertura e dimensão consistentes.
+        for target, aliases in self.CROP_ALIASES.items():
+            mask = clean["cultura"].map(lambda value: any(alias in value for alias in aliases))
+            clean.loc[mask, "cultura"] = target
         cane_codes = clean["cod_cultura_zarc"].isin(self.CANA_FINALIDADES)
         clean.loc[cane_codes, "cultura"] = "cana-de-acucar"
         clean["finalidade"] = clean["cod_cultura_zarc"].map(self.CANA_FINALIDADES).fillna("nao-se-aplica")

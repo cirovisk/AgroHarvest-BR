@@ -64,6 +64,22 @@ def test_zarc_transform(mock_zarc_raw):
     row = df_clean.iloc[0]
     assert row["cultura"] == "soja"
 
+
+def test_zarc_consolida_variantes_de_cultura():
+    from src.pipeline.sources.zarc import ZarcPipeline
+
+    pipeline = ZarcPipeline()
+    raw = pd.DataFrame(
+        {
+            "cd_mun": [1200013, 1200054],
+            "Nome_cultura": ["Milho 2ª Safra", "Algodão Herbáceo"],
+        }
+    )
+
+    cleaned = pipeline.clean(raw)
+
+    assert cleaned["cultura"].tolist() == ["milho", "algodao"]
+
 def test_conab_transform(mock_conab_raw):
     pipeline = ConabPipeline()
     processed = pipeline.clean(mock_conab_raw)
