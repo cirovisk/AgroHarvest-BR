@@ -1,8 +1,10 @@
 """SIGEF pipeline: seed and seedling production control (MAPA)."""
 
+import hashlib
 import io
 import logging
 import os
+import re
 
 import pandas as pd
 import requests
@@ -27,10 +29,14 @@ class SigefPipeline(BaseSource):
         "reserva_semente": "https://dados.agricultura.gov.br/dataset/c7784a6e-f0ec-4196-a1ce-1d2d4784a58e/resource/3fc8e266-ec41-40b0-8d62-157b91b36b2c/download/sigefdeclaracaoareaproducaouseproprio.csv",
     }
 
-    def __init__(self, data_dir="data/sigef", use_cache=True):
+    def __init__(self, data_dir="data/sigef", use_cache=True, quarantine_path=None):
         super().__init__()
         self.data_dir = data_dir
         self.use_cache = use_cache
+        self.quarantine_path = quarantine_path or os.getenv(
+            "SIGEF_QUARANTINE_PATH", os.path.join(self.data_dir, "campos_producao_quarentena.csv")
+        )
+        self.quality_metrics = {}
         if not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir, exist_ok=True)
 
@@ -88,6 +94,8 @@ class SigefPipeline(BaseSource):
 
     def _clean_producao(self, df: pd.DataFrame) -> pd.DataFrame:
         if df.empty:
+            self._write_quarantine([])
+            self.quality_metrics = self._empty_quality_metrics()
             return df
         df = df.copy()
 
@@ -128,18 +136,220 @@ class SigefPipeline(BaseSource):
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col].astype(str).str.replace(",", "."), errors="coerce")
 
-        date_cols = ["data_plantio", "data_colheita"]
-        for col in date_cols:
-            if col in df.columns:
-                df[col] = pd.to_datetime(df[col], dayfirst=True, errors="coerce")
-
         # Create the 'cultura' column for dimension mapping
         if "especie" in df.columns:
             df["cultura"] = normalize_string(df["especie"])
         elif "Especie" in df.columns:
             df["cultura"] = normalize_string(df["Especie"])
 
+        df = self._validate_production_dates(df)
+        return self._deduplicate_production(df)
+
+    @staticmethod
+    def _empty_quality_metrics():
+        return {
+            "rows_input": 0,
+            "dates_accepted": 0,
+            "dates_corrected": 0,
+            "dates_rejected": 0,
+            "chronology_rejected": 0,
+            "duplicate_rows_consolidated": 0,
+            "duplicate_groups_with_date_conflicts": 0,
+            "rows_output": 0,
+            "quarantine_records": 0,
+        }
+
+    @staticmethod
+    def _parse_safra(value):
+        """Return the inclusive crop-year bounds, accepting 2023/24 and 2023/2024."""
+        match = re.fullmatch(r"\s*(\d{4})\s*[/\-]\s*(\d{2}|\d{4})\s*", str(value or ""))
+        if not match:
+            return None
+        start = int(match.group(1))
+        end_text = match.group(2)
+        if len(end_text) == 2:
+            end = (start // 100) * 100 + int(end_text)
+            if end < start:
+                end += 100
+        else:
+            end = int(end_text)
+        if end < start or end - start > 2:
+            return None
+        return start, end
+
+    @staticmethod
+    def _row_fingerprint(row):
+        values = ["" if pd.isna(value) else str(value) for value in row]
+        return hashlib.sha256("\x1f".join(values).encode("utf-8")).hexdigest()
+
+    def _validate_production_dates(self, df):
+        metrics = self._empty_quality_metrics()
+        metrics["rows_input"] = len(df)
+        quarantine = []
+        date_cols = [column for column in ("data_plantio", "data_colheita") if column in df.columns]
+
+        # Fingerprints make both audit records and tie-breaking independent of input order.
+        fingerprint_cols = sorted(df.columns)
+        df["_source_fingerprint"] = df[fingerprint_cols].apply(self._row_fingerprint, axis=1)
+
+        for column in date_cols:
+            original_column = f"_{column}_original"
+            df[original_column] = df[column]
+            parsed_values = []
+            for _, row in df.iterrows():
+                parsed, rule, reason = self._validate_date(row[column], row.get("safra"))
+                parsed_values.append(parsed)
+                if rule == "accepted":
+                    metrics["dates_accepted"] += 1
+                elif rule == "year_suffix_corrected":
+                    metrics["dates_corrected"] += 1
+                    quarantine.append(self._audit_record(row, column, row[column], parsed, rule, ""))
+                elif reason:
+                    metrics["dates_rejected"] += 1
+                    quarantine.append(self._audit_record(row, column, row[column], parsed, rule, reason))
+            df[column] = pd.to_datetime(pd.Series(parsed_values, index=df.index), errors="coerce")
+
+        if {"data_plantio", "data_colheita"}.issubset(df.columns):
+            invalid_order = (
+                df["data_plantio"].notna() & df["data_colheita"].notna() & (df["data_colheita"] < df["data_plantio"])
+            )
+            for index in df.index[invalid_order]:
+                row = df.loc[index]
+                quarantine.append(
+                    self._audit_record(
+                        row,
+                        "data_colheita",
+                        row["_data_colheita_original"],
+                        None,
+                        "chronology_rejected",
+                        "data_colheita_anterior_data_plantio",
+                    )
+                )
+            count = int(invalid_order.sum())
+            metrics["chronology_rejected"] = count
+            metrics["dates_rejected"] += count
+            # Do not persist a misleading half-pair. The business row remains usable.
+            df.loc[invalid_order, ["data_plantio", "data_colheita"]] = pd.NaT
+
+        self._write_quarantine(quarantine)
+        metrics["quarantine_records"] = len(quarantine)
+        self.quality_metrics = metrics
+        self.log.info("Qualidade de datas SIGEF: %s", metrics)
         return df
+
+    @staticmethod
+    def _validate_date(value, safra):
+        if value is None or pd.isna(value) or not str(value).strip():
+            return pd.NaT, "empty", ""
+        match = re.fullmatch(r"\s*(\d{1,2})/(\d{1,2})/(\d{4})\s*", str(value))
+        if not match:
+            return pd.NaT, "rejected", "formato_data_invalido"
+        bounds = SigefPipeline._parse_safra(safra)
+        if bounds is None:
+            return pd.NaT, "rejected", "safra_ausente_ou_invalida"
+        day, month, raw_year = map(int, match.groups())
+        minimum, maximum = bounds[0] - 1, bounds[1] + 1
+        if minimum <= raw_year <= maximum:
+            candidate_years = [raw_year]
+            rule = "accepted"
+        else:
+            suffix = raw_year % 100
+            candidate_years = [year for year in range(minimum, maximum + 1) if year % 100 == suffix]
+            rule = "year_suffix_corrected"
+        if len(candidate_years) != 1:
+            return pd.NaT, "rejected", "ano_fora_janela_sem_correcao_univoca"
+        try:
+            parsed = pd.Timestamp(year=candidate_years[0], month=month, day=day)
+        except ValueError:
+            return pd.NaT, "rejected", "data_calendario_invalida"
+        return parsed, rule, ""
+
+    @staticmethod
+    def _audit_record(row, field, original, corrected, rule, reason):
+        return {
+            "source_fingerprint": row["_source_fingerprint"],
+            "safra": row.get("safra"),
+            "especie": row.get("especie"),
+            "cultivar_raw": row.get("cultivar_raw"),
+            "municipio": row.get("municipio"),
+            "uf": row.get("uf"),
+            "campo": field,
+            "valor_original": original,
+            "valor_corrigido": "" if corrected is None or pd.isna(corrected) else corrected.strftime("%d/%m/%Y"),
+            "regra_aplicada": rule,
+            "motivo_rejeicao": reason,
+        }
+
+    def _write_quarantine(self, records):
+        columns = [
+            "source_fingerprint",
+            "safra",
+            "especie",
+            "cultivar_raw",
+            "municipio",
+            "uf",
+            "campo",
+            "valor_original",
+            "valor_corrigido",
+            "regra_aplicada",
+            "motivo_rejeicao",
+        ]
+        quarantine = pd.DataFrame(records, columns=columns).sort_values(
+            ["source_fingerprint", "campo", "regra_aplicada"], ignore_index=True
+        )
+        directory = os.path.dirname(os.path.abspath(self.quarantine_path))
+        os.makedirs(directory, exist_ok=True)
+        temporary_path = f"{self.quarantine_path}.tmp"
+        quarantine.to_csv(temporary_path, index=False, encoding="utf-8")
+        os.replace(temporary_path, self.quarantine_path)
+
+    @staticmethod
+    def _quality_score(df):
+        valid_dates = sum(df[column].notna().astype(int) for column in ("data_plantio", "data_colheita"))
+        original_dates = sum(
+            df.get(f"_{column}_original", pd.Series(index=df.index, dtype=object))
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .ne("")
+            .astype(int)
+            for column in ("data_plantio", "data_colheita")
+        )
+        # Prefer two valid dates, then one, then genuinely empty dates, and finally rejected dates.
+        return valid_dates * 10 - (original_dates - valid_dates)
+
+    def _deduplicate_production(self, df):
+        natural_key = ["municipio", "uf", "safra", "especie", "cultivar_raw", "categoria"]
+        if not all(column in df.columns for column in natural_key):
+            self.quality_metrics["rows_output"] = len(df)
+            return df.drop(columns=[column for column in df.columns if column.startswith("_")], errors="ignore")
+
+        df = df.copy()
+        df["_quality_score"] = self._quality_score(df)
+        duplicate_mask = df.duplicated(natural_key, keep=False)
+        conflicts = 0
+        if duplicate_mask.any():
+            original_columns = ["_data_plantio_original", "_data_colheita_original"]
+            date_signature = df.loc[duplicate_mask, natural_key + original_columns].copy()
+            date_signature["_dates"] = (
+                date_signature["_data_plantio_original"].fillna("").astype(str)
+                + "|"
+                + date_signature["_data_colheita_original"].fillna("").astype(str)
+            )
+            conflicts = int((date_signature.groupby(natural_key, dropna=False)["_dates"].nunique() > 1).sum())
+
+        before = len(df)
+        df = df.sort_values(
+            natural_key + ["_quality_score", "_source_fingerprint"],
+            ascending=[True] * len(natural_key) + [False, True],
+            na_position="last",
+            kind="stable",
+        ).drop_duplicates(natural_key, keep="first")
+        self.quality_metrics["duplicate_rows_consolidated"] = before - len(df)
+        self.quality_metrics["duplicate_groups_with_date_conflicts"] = conflicts
+        self.quality_metrics["rows_output"] = len(df)
+        self.log.info("Qualidade final SIGEF: %s", self.quality_metrics)
+        return df.drop(columns=[column for column in df.columns if column.startswith("_")], errors="ignore")
 
     def _clean_reserva_semente(self, df: pd.DataFrame) -> pd.DataFrame:
         if df.empty:
@@ -167,6 +377,9 @@ class SigefPipeline(BaseSource):
         for col in num_cols:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col].astype(str).str.replace(",", "."), errors="coerce")
+
+        if "data_plantio" in df.columns:
+            df["data_plantio"] = pd.to_datetime(df["data_plantio"], format="mixed", dayfirst=True, errors="coerce")
 
         if "especie" in df.columns:
             df["cultura"] = normalize_string(df["especie"])

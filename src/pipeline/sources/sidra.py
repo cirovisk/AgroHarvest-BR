@@ -27,9 +27,27 @@ class SidraPipeline(BaseSource):
 
     TARGET_CROPS = CULTURAS_IBGE_IDS
 
-    def __init__(self, ano: str | None = None, data_dir: str = "data/sidra", use_cache: bool = True):
+    DEFAULT_YEARS = ("2021", "2022", "2023", "2024")
+
+    def __init__(
+        self, ano: str | list[str] | tuple[str, ...] | None = None, data_dir: str = "data/sidra", use_cache: bool = True
+    ):
         super().__init__()
-        self.ano = ano or os.getenv("SIDRA_ANO_DEFAULT", "2021")
+        configured_years = ano if ano is not None else (os.getenv("SIDRA_ANOS") or os.getenv("SIDRA_ANO_DEFAULT"))
+        if configured_years is None:
+            self.anos = self.DEFAULT_YEARS
+        elif isinstance(configured_years, str):
+            self.anos = tuple(year.strip() for year in configured_years.split(",") if year.strip())
+        else:
+            self.anos = tuple(str(year).strip() for year in configured_years if str(year).strip())
+        if not self.anos:
+            raise ValueError("SIDRA requer pelo menos um ano configurado")
+        if any(not year.isdigit() or len(year) != 4 for year in self.anos):
+            raise ValueError(f"Anos SIDRA inválidos: {self.anos}")
+        # Mantido para consumidores que ainda consultam o atributo antigo.
+        self.ano = self.anos[0] if len(self.anos) == 1 else ",".join(self.anos)
+        self.missing_years: list[str] = []
+        self.missing_requests: list[tuple[str, str]] = []
         self.data_dir = data_dir
         self.use_cache = use_cache
         if not os.path.exists(self.data_dir):
@@ -68,43 +86,85 @@ class SidraPipeline(BaseSource):
         return final_map
 
     def extract(self, **kwargs) -> pd.DataFrame:
-        cache_file = os.path.join(self.data_dir, f"pam_sidra_{self.ano}.csv")
+        cache_scope = "-".join(self.anos)
+        cache_file = os.path.join(self.data_dir, f"pam_sidra_{cache_scope}.csv")
 
         if self.use_cache and os.path.exists(cache_file):
             if not self.is_file_stale(cache_file, threshold_days=30):
                 self.log.info(f"Carregando cache SIDRA: {cache_file}")
-                return pd.read_csv(cache_file, dtype=str)
+                cached = pd.read_csv(cache_file, dtype=str)
+                cached_years = set(cached["D3N"].unique()) if "D3N" in cached.columns else set()
+                if cached_years == set(self.anos):
+                    self.missing_years = []
+                    self.missing_requests = []
+                    return cached
+                self.log.warning(
+                    f"Cache SIDRA ignorado: períodos encontrados {sorted(cached_years)}, esperados {list(self.anos)}."
+                )
 
         crops_ids = self._map_culture_ids()
 
         # Table 5457 variables: 8331 (planted area), 216 (harvested area), 214 (production), 215 (production value)
         variables = "8331,216,214,215"
 
-        def _fetch_crop(crop_name, crop_id):
-            self.log.info(f"Buscando dados IBGE para {crop_name} (ID: {crop_id})")
-            url = f"https://apisidra.ibge.gov.br/values/t/5457/n6/all/v/{variables}/p/{self.ano}/c782/{crop_id}"
+        def _fetch_crop(crop_name, crop_id, year):
+            self.log.info(f"Buscando dados IBGE para {crop_name} (ID: {crop_id}), ano {year}")
+            url = f"https://apisidra.ibge.gov.br/values/t/5457/n6/all/v/{variables}/p/{year}/c782/{crop_id}"
             try:
                 resp = requests.get(url, timeout=30)
                 if resp.status_code == 200:
                     data = resp.json()
                     if data and len(data) > 1:
                         df_tmp = pd.DataFrame(data[1:], columns=data[0])
+                        if "D3N" not in df_tmp.columns:
+                            self.log.warning(f"SIDRA não retornou a coluna de período para {crop_name}, ano {year}.")
+                            return None
+                        returned_years = set(df_tmp["D3N"].astype(str).unique())
+                        if returned_years != {year}:
+                            self.log.warning(
+                                f"SIDRA retornou período(s) {sorted(returned_years)} para {crop_name}, ano solicitado {year}."
+                            )
+                            return None
                         df_tmp["cultura_raw"] = crop_name
-                        return df_tmp
+                        return year, df_tmp
+                    self.log.warning(f"SIDRA retornou somente cabeçalho para {crop_name}, ano {year}.")
                 else:
-                    self.log.warning(f"Erro {resp.status_code} na consulta de {crop_name}: {resp.text}")
+                    self.log.warning(f"Erro {resp.status_code} na consulta de {crop_name}, ano {year}: {resp.text}")
             except Exception as e:
-                self.log.error(f"Exceção ao buscar {crop_name}: {e}")
+                self.log.error(f"Exceção ao buscar {crop_name}, ano {year}: {e}")
             return None
 
         # Parallel requests: five simultaneous crops instead of sequential processing
         all_dfs = []
-        with ThreadPoolExecutor(max_workers=len(crops_ids)) as pool:
-            futures = {pool.submit(_fetch_crop, name, cid): name for name, cid in crops_ids.items()}
+        years_with_data = set()
+        successful_requests = set()
+        max_workers = min(10, len(crops_ids) * len(self.anos))
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            futures = {
+                pool.submit(_fetch_crop, name, cid, year): (name, year)
+                for year in self.anos
+                for name, cid in crops_ids.items()
+            }
             for future in as_completed(futures):
                 result = future.result()
                 if result is not None:
-                    all_dfs.append(result)
+                    year, frame = result
+                    years_with_data.add(year)
+                    crop_name, _ = futures[future]
+                    successful_requests.add((crop_name, year))
+                    all_dfs.append(frame)
+
+        self.missing_years = [year for year in self.anos if year not in years_with_data]
+        self.missing_requests = [
+            (crop_name, year)
+            for year in self.anos
+            for crop_name in crops_ids
+            if (crop_name, year) not in successful_requests
+        ]
+        if self.missing_years:
+            self.log.warning(f"SIDRA sem dados válidos para os anos solicitados: {self.missing_years}")
+        if self.missing_requests:
+            self.log.warning(f"SIDRA com consultas ausentes ou inválidas: {self.missing_requests}")
 
         if not all_dfs:
             self.log.warning("Extrator SIDRA: nenhum dado retornado para todas as culturas alvo.")
@@ -113,7 +173,7 @@ class SidraPipeline(BaseSource):
         final_df = pd.concat(all_dfs, ignore_index=True)
         self.log.info(f"Extrator SIDRA: {len(final_df)} linha(s) brutas consolidadas de {len(all_dfs)} cultura(s).")
 
-        if self.use_cache:
+        if self.use_cache and not self.missing_requests:
             final_df.to_csv(cache_file, index=False)
             self.log.info(f"Cache salvo: {cache_file}")
 
@@ -183,9 +243,16 @@ class SidraPipeline(BaseSource):
 
         return df_pivot
 
-    def load(self, df: pd.DataFrame, lookups: dict) -> str:
+    def load(self, df: pd.DataFrame, lookups: dict) -> dict:
         if df.empty:
-            return "0 registros"
+            return {
+                "source": "sidra",
+                "status": "partial",
+                "rows_loaded": 0,
+                "coverage_expected": list(self.anos),
+                "coverage_observed": [],
+                "warnings": ["Nenhum dado válido retornado pelo SIDRA"],
+            }
 
         df_f = df.copy()
         df_f["id_cultura"] = df_f["cultura"].apply(lambda x: get_cultura_id(x, lookups["culturas"]))
@@ -202,6 +269,15 @@ class SidraPipeline(BaseSource):
         ]
         df_f = df_f[cols].dropna(subset=["id_cultura", "id_municipio"])
         upsert_data(FatoProducaoPAM, df_f, index_elements=["id_cultura", "id_municipio", "ano"])
-        result = f"{len(df_f)} registros upserted"
-        self.log.info(f"Fato PAM: {result}.")
+        observed_years = sorted(df_f["ano"].astype(str).unique().tolist())
+        warnings = [f"Consulta ausente ou inválida: {crop}/{year}" for crop, year in self.missing_requests]
+        result = {
+            "source": "sidra",
+            "status": "partial" if self.missing_requests else "success",
+            "rows_loaded": len(df_f),
+            "coverage_expected": list(self.anos),
+            "coverage_observed": observed_years,
+            "warnings": warnings,
+        }
+        self.log.info("Fato PAM: %d registros upserted.", len(df_f))
         return result

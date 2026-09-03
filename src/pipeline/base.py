@@ -46,10 +46,14 @@ class BaseSource(ABC):
         """Load clean data into the database through upsert."""
         ...
 
-    def run(self, lookups: dict, **kwargs) -> str:
+    def run(self, lookups: dict, **kwargs) -> object:
         """Run the full pipeline: extract -> clean -> load."""
         source = self.__class__.__name__
         self.log.info("Starting pipeline...", extra={"event": "pipeline_source_start", "source": source})
+
+        refresh = bool(kwargs.pop("refresh", False))
+        if refresh and hasattr(self, "use_cache"):
+            self.use_cache = False
 
         started = time.monotonic()
         raw = self.extract(**kwargs)

@@ -63,6 +63,9 @@ Climate Risk Zoning by municipality and soil.
 - `tipo_solo`: Soil classification (type 1, 2, or 3).
 - `periodo_plantio`: Recommended ten-day period/window.
 - `risco_climatico`: Risk percentage (20%, 30%, 40%).
+- `safra`: ZARC season (for example, 2025-2026).
+- `finalidade`: Sugar/alcohol, other purposes, or not applicable.
+- `cod_cultura_zarc`: Original MAPA ZARC crop code.
 - `data_modificacao`: Audit timestamp.
 
 ### `fato_producao_conab` (Fonte: CONAB)
@@ -135,14 +138,16 @@ Commercial seed and seedling production control.
 - `producao_bruta_t`: Gross harvested volume (tons).
 - `producao_est_t`: Production estimate (tons).
  
-### `fato_sigef_uso_proprio` (Fonte: MAPA/SIGEF)
+### `fato_sigef_reserva_semente` (Fonte: MAPA/SIGEF)
 Seed reserve declarations for producers' own use.
-- `id_sigef_uso_proprio` (PK): Unique identifier.
+- `id_sigef_reserva` (PK): Unique identifier.
 - `id_cultura` (FK): Key to `dim_cultura`.
 - `id_municipio` (FK): Key to `dim_municipio`.
 - `periodo`: Declaration year/crop season.
 - `tipo_periodo`: Period granularity (for example, ANO).
 - `cultivar_raw`: Reserved cultivar.
+- `data_plantio`: Planting date, when supplied by SIGEF.
+- `quantidade_reservada_t`: Reserved quantity in tons, when supplied by SIGEF.
 - `area_total_ha`: Total declared area.
 - `area_plantada_ha`: Actually planted area.
 - `area_estimada_ha`: Estimated production area.

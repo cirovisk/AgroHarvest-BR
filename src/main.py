@@ -62,7 +62,7 @@ def main():
         lookups["municipios_ibge"] = map_ibge
         lookups["municipios_nome"] = map_nome
 
-        success, failed = [], []
+        success, partial, failed = [], [], []
         alert = AlertManager()
         _start = time.monotonic()
 
@@ -74,16 +74,24 @@ def main():
             pipeline = source_cls()
             source_start = time.monotonic()
             try:
-                result = pipeline.run(lookups)
-                success.append(name)
+                result = pipeline.run(lookups, refresh=args.refresh)
                 duration = time.monotonic() - source_start
-                alert.record_source(name, "success", duration, result=str(result))
+                result_status = result.get("status", "success") if isinstance(result, dict) else "success"
+                if result_status == "partial":
+                    partial.append(name)
+                    for warning in result.get("warnings", []):
+                        alert.record_warning(f"{name}: {warning}")
+                elif result_status == "failure":
+                    failed.append(name)
+                else:
+                    success.append(name)
+                alert.record_source(name, result_status, duration, result=result)
                 log.info(
                     f"✓ {name}: {result}",
                     extra={
                         "event": "pipeline_source_complete",
                         "source": name,
-                        "status": "success",
+                        "status": result_status,
                         "duration_seconds": round(duration, 2),
                     },
                 )
@@ -110,10 +118,12 @@ def main():
 
         log.info("--- Pipeline completed ---")
         log.info(f"Success: {success}")
+        if partial:
+            log.warning(f"Partial: {partial}")
         if failed:
             log.warning(f"Failures: {failed}")
 
-        alert.send_report(success=success, failed=failed, duration=time.monotonic() - _start)
+        alert.send_report(success=success, partial=partial, failed=failed, duration=time.monotonic() - _start)
 
 
 if __name__ == "__main__":

@@ -118,10 +118,21 @@ class FatoRiscoZARC(Base):
     tipo_solo = Column(String)
     periodo_plantio = Column(String)
     risco_climatico = Column(String, index=True)
+    safra = Column(String(20), nullable=False, default="nao-informada")
+    finalidade = Column(String, nullable=False, default="nao-informada")
+    cod_cultura_zarc = Column(String, nullable=True, index=True)
     data_modificacao = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     __table_args__ = (
-        UniqueConstraint("id_cultura", "id_municipio", "tipo_solo", "periodo_plantio", name="_zarc_uc"),
+        UniqueConstraint(
+            "id_cultura",
+            "id_municipio",
+            "tipo_solo",
+            "periodo_plantio",
+            "safra",
+            "finalidade",
+            name="_zarc_uc",
+        ),
         Index("idx_zarc_municipio_cultura", "id_municipio", "id_cultura"),
     )
 
@@ -259,6 +270,8 @@ class FatoSigefReservaSemente(Base):
     area_total_ha = Column(Float)
     area_plantada_ha = Column(Float)
     area_estimada_ha = Column(Float)
+    data_plantio = Column(DateTime)
+    quantidade_reservada_t = Column(Float)
     data_modificacao = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     __table_args__ = (

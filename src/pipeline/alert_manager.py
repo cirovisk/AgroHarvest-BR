@@ -39,7 +39,7 @@ class AlertManager:
         source: str,
         status: str,
         duration: float,
-        result: str | None = None,
+        result: object | None = None,
         error: str | None = None,
     ) -> None:
         self.sources.append(
@@ -52,14 +52,23 @@ class AlertManager:
             }
         )
 
-    def send_report(self, success: list[str], failed: list[str], duration: float | None = None) -> None:
+    def send_report(
+        self,
+        success: list[str],
+        failed: list[str],
+        duration: float | None = None,
+        partial: list[str] | None = None,
+    ) -> None:
+        partial = partial or []
         if duration is None:
             duration = time.monotonic() - self.started_at
 
-        total = len(success) + len(failed)
-        if not failed:
+        total = len(success) + len(partial) + len(failed)
+        if not failed and not partial:
             status = "SUCCESS"
-        elif success:
+        elif not failed and partial:
+            status = "PARTIAL_SUCCESS"
+        elif success or partial:
             status = "PARTIAL_FAILURE"
         else:
             status = "FAILURE"
@@ -71,6 +80,7 @@ class AlertManager:
             "duration_seconds": round(duration, 1),
             "total_sources": total,
             "sources_ok": success,
+            "sources_partial": partial,
             "sources_failed": failed,
             "error_count": len(self.errors),
             "warning_count": len(self.warnings),
@@ -103,7 +113,13 @@ class AlertManager:
                     fieldnames=["source", "status", "duration_seconds", "result", "error"],
                 )
                 writer.writeheader()
-                writer.writerows(self.sources)
+                rows = []
+                for source in self.sources:
+                    row = source.copy()
+                    if not isinstance(row.get("result"), (str, type(None))):
+                        row["result"] = json.dumps(row["result"], ensure_ascii=False, sort_keys=True)
+                    rows.append(row)
+                writer.writerows(rows)
             log.info(f"[AlertManager] Metrics written to: {out_path}")
         except Exception as e:
             log.error(f"[AlertManager] Failed to write metrics CSV: {e}")
