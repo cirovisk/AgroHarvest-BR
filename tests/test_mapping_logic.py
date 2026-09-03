@@ -67,7 +67,6 @@ def test_get_cultura_id_logic():
     mapping = {
         "soja": 1,
         "milho": 2,
-        "cana-de-açúcar": 3
     }
     
     # Match exato
@@ -77,7 +76,6 @@ def test_get_cultura_id_logic():
     assert get_cultura_id("SOJA", mapping) == 1
     
     # Match with accents/flexibility
-    assert get_cultura_id("Cana de Acucar", mapping) == 3
     
     # Match parcial
     assert get_cultura_id("Milho Verdin", mapping) == 2

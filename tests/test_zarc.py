@@ -7,17 +7,13 @@ from src.pipeline.sources.zarc import ZarcPipeline
 
 def _zarc_rows(cultures):
     rows = []
-    codes = {
-        "Cana-de-Açúcar (açúcar e álcool)": "12011840021011",
-        "Cana-de-Açúcar (outros fins)": "12011840000011",
-    }
     for position, culture in enumerate(cultures, start=1):
         rows.append(
             {
                 "Nome_cultura": culture,
                 "SafraIni": "2025",
                 "SafraFin": "2026",
-                "Cod_Cultura": codes.get(culture, str(position)),
+                "Cod_Cultura": str(position),
                 "Cod_Solo": "1",
                 "geocodigo": f"500000{position}",
                 "UF": "MS",
@@ -26,25 +22,6 @@ def _zarc_rows(cultures):
             }
         )
     return pd.DataFrame(rows)
-
-
-def test_reconhece_codigos_e_finalidades_oficiais_da_cana(tmp_path):
-    pipeline = ZarcPipeline(data_dir=tmp_path)
-    clean = pipeline.clean(_zarc_rows(["Cana-de-Açúcar (açúcar e álcool)", "Cana-de-Açúcar (outros fins)"]))
-
-    assert clean["cultura"].tolist() == ["cana-de-acucar", "cana-de-acucar"]
-    assert clean["finalidade"].tolist() == ["acucar-e-alcool", "outros-fins"]
-    assert clean["safra"].tolist() == ["2025-2026", "2025-2026"]
-
-
-def test_separacao_usa_codigo_da_cana_mesmo_sem_nome_reconhecivel(tmp_path):
-    pipeline = ZarcPipeline(data_dir=tmp_path)
-    source = _zarc_rows(["Descrição alterada pelo MAPA"])
-    source["Cod_Cultura"] = "12011840021011"
-
-    mask = pipeline._crop_masks(source)["cana-de-acucar"]
-
-    assert mask.tolist() == [True]
 
 
 def test_cache_e_manifesto_sao_isolados_por_safra(tmp_path):
@@ -72,7 +49,7 @@ def test_hash_invalido_rejeita_cache(tmp_path):
     assert not pipeline._cache_is_valid()
 
 
-def test_cultura_ausente_retorna_status_partial(tmp_path, monkeypatch):
+def test_culturas_do_escopo_retorna_status_success(tmp_path, monkeypatch):
     pipeline = ZarcPipeline(data_dir=tmp_path, chunksize=2)
     source = _zarc_rows(["Soja", "Milho", "Trigo", "Algodão"])
     source.to_csv(pipeline.raw_file, sep=";", index=False)
@@ -81,9 +58,9 @@ def test_cultura_ausente_retorna_status_partial(tmp_path, monkeypatch):
 
     result = pipeline.run(lookups={})
 
-    assert result["status"] == "partial"
+    assert result["status"] == "success"
     assert result["coverage_observed"] == ["soja", "milho", "trigo", "algodao"]
-    assert result["warnings"] == ["Cultura sem registros na safra 2025-2026: cana-de-acucar"]
+    assert result["warnings"] == []
 
 
 def test_safra_precisa_ter_anos_consecutivos(tmp_path):

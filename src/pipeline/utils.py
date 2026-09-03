@@ -50,7 +50,6 @@ def get_cultura_id(nome_cultura, mapping):
         "gossypium hirsutum": "algodao",
         "avena strigosa": "aveia",
         "avena sativa": "aveia",
-        "saccharum": "cana-de-acucar",
     }
 
     # Try an exact match first, before normalizing

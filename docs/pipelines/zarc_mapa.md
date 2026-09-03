@@ -1,6 +1,6 @@
 # Pipeline ZARC (MAPA)
 
-O pipeline carrega a Tábua de Risco do Zoneamento Agrícola de Risco Climático em blocos, sem manter o arquivo consolidado inteiro na memória. A safra padrão é **2025-2026**, escolhida por conter a revisão da cana-de-açúcar publicada pelo MAPA em 2026.
+O pipeline carrega a Tábua de Risco do Zoneamento Agrícola de Risco Climático em blocos, sem manter o arquivo consolidado inteiro na memória.
 
 ## Fonte e configuração
 
@@ -21,7 +21,6 @@ Os arquivos derivados têm a safra no nome:
 ```text
 data/zarc/zarc_raw_2025-2026.csv
 data/zarc/zarc_2025-2026_soja.csv
-data/zarc/zarc_2025-2026_cana-de-acucar.csv
 data/zarc/zarc_2025-2026.manifest.json
 ```
 
@@ -31,14 +30,9 @@ O argumento global `--refresh` força um novo download e recria todos os arquivo
 
 ## Culturas e cobertura
 
-São esperadas soja, milho, trigo, algodão e cana-de-açúcar. Para a cana, o reconhecimento prioriza os códigos oficiais, não apenas o nome:
+São esperadas soja, milho, trigo e algodão. Cana-de-açúcar não faz parte do escopo deste estudo.
 
-| Código ZARC | Finalidade persistida |
-|---|---|
-| `12011840021011` | `acucar-e-alcool` |
-| `12011840000011` | `outros-fins` |
-
-As demais culturas recebem `finalidade = nao-se-aplica`. Se qualquer cultura-alvo tiver zero linhas, a execução retorna `status = partial`, com `coverage_expected`, `coverage_observed` e uma advertência por ausência. Uma resposta parcial não deve ser registrada como sucesso integral pelo orquestrador.
+As culturas recebem `finalidade = nao-se-aplica`. Se qualquer cultura-alvo tiver zero linhas, a execução retorna `status = partial`, com `coverage_expected`, `coverage_observed` e uma advertência por ausência. Uma resposta parcial não deve ser registrada como sucesso integral pelo orquestrador.
 
 ## Processamento e armazenamento
 
@@ -52,7 +46,7 @@ A fato `fato_risco_zarc` armazena:
 - `finalidade`;
 - `cod_cultura_zarc`.
 
-A chave de unicidade precisa incluir `safra` e `finalidade`, além de cultura, município, tipo de solo e período. Isso impede que outra safra ou outra finalidade da cana sobrescreva a observação existente.
+A chave de unicidade inclui `safra` e `finalidade`, além de cultura, município, tipo de solo e período.
 
 ## Verificações de aceite
 
@@ -66,4 +60,4 @@ GROUP BY z.safra, c.cultura, z.finalidade
 ORDER BY z.safra, c.cultura, z.finalidade;
 ```
 
-As cinco culturas devem aparecer. Para cana-de-açúcar, as duas finalidades devem permanecer distinguíveis quando ambas existirem no recurso oficial.
+As quatro culturas do escopo devem aparecer.

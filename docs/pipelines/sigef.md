@@ -14,7 +14,6 @@ To ensure that SIGEF data can be joined with other sources such as IBGE/PAM, the
 | `Triticum aestivum`     | Trigo                | Trigo               |
 | `Gossypium hirsutum`    | Algodão              | Algodão             |
 | `Avena strigosa`        | Aveia                | Aveia               |
-| `Saccharum`             | Cana-de-açúcar       | Cana-de-açúcar      |
 
 ## 🚀 Normalization Logic
 The worker uses **token matching** with word boundaries.

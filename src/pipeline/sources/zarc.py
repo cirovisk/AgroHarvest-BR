@@ -30,16 +30,11 @@ class ZarcPipeline(BaseSource):
         "2025-2026": "f9d597f9-0fee-47eb-9344-8642274ca9da",
         "2026-2027": "139e5a60-1f43-4cc8-aeab-a35dbbf816c0",
     }
-    CANA_FINALIDADES = {
-        "12011840021011": "acucar-e-alcool",
-        "12011840000011": "outros-fins",
-    }
     CROP_ALIASES = {
         "soja": ("soja",),
         "milho": ("milho",),
         "trigo": ("trigo",),
         "algodao": ("algodao",),
-        "cana-de-acucar": ("cana-de-acucar", "cana de acucar"),
     }
 
     def __init__(
@@ -135,22 +130,15 @@ class ZarcPipeline(BaseSource):
 
     def _crop_masks(self, chunk: pd.DataFrame) -> dict[str, pd.Series]:
         name_col = next((c for c in ("Nome_cultura", "nome_cultura", "cultura") if c in chunk.columns), None)
-        code_col = next((c for c in ("Cod_Cultura", "cod_cultura") if c in chunk.columns), None)
         names = (
             chunk[name_col].astype(str).map(self._normalize_crop)
             if name_col
-            else pd.Series("", index=chunk.index, dtype="object")
-        )
-        codes = (
-            chunk[code_col].astype(str).str.replace(r"\.0$", "", regex=True).str.strip()
-            if code_col
             else pd.Series("", index=chunk.index, dtype="object")
         )
         masks = {}
         for crop in self.TARGET_CROPS:
             aliases = self.CROP_ALIASES.get(crop, (crop,))
             masks[crop] = names.map(lambda value: any(alias in value for alias in aliases))
-        masks["cana-de-acucar"] = masks.get("cana-de-acucar", False) | codes.isin(self.CANA_FINALIDADES)
         return masks
 
     def run(self, lookups: dict, **kwargs) -> dict:
@@ -292,9 +280,7 @@ class ZarcPipeline(BaseSource):
         for target, aliases in self.CROP_ALIASES.items():
             mask = clean["cultura"].map(lambda value: any(alias in value for alias in aliases))
             clean.loc[mask, "cultura"] = target
-        cane_codes = clean["cod_cultura_zarc"].isin(self.CANA_FINALIDADES)
-        clean.loc[cane_codes, "cultura"] = "cana-de-acucar"
-        clean["finalidade"] = clean["cod_cultura_zarc"].map(self.CANA_FINALIDADES).fillna("nao-se-aplica")
+        clean["finalidade"] = "nao-se-aplica"
         if "safraini" in clean.columns and "safrafin" in clean.columns:
             clean["safra"] = clean["safraini"].astype(str) + "-" + clean["safrafin"].astype(str)
         else:
